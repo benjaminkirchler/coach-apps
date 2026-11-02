@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Start First</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f6f5f0; --surface:#fffefa; --ink:#242f2a; --muted:#626c65; --line:#d7dcd3; --accent:#365f49; --on-accent:#fff; --soft:#e9eee5; }
+    @media (prefers-color-scheme:dark) {
+      :root { --bg:#171d19; --surface:#202922; --ink:#e7ece4; --muted:#abb7aa; --line:#425044; --accent:#b7d4b5; --on-accent:#1d3022; --soft:#2d3a2e; }
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:17px/1.55 system-ui,sans-serif; }
+    .shell { max-width:680px; margin:auto; padding:28px 20px 48px; }
+    header { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+    h1 { margin:0; font-size:26px; letter-spacing:-.7px; }
+    h2 { margin:0 0 12px; font-size:25px; line-height:1.25; letter-spacing:-.5px; }
+    h3 { margin:0 0 8px; font-size:19px; }
+    p { margin:0 0 16px; }
+    small,.muted { color:var(--muted); }
+    .eyebrow { font-size:13px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+    nav { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin:26px 0 28px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+    button,input,select,textarea { font:inherit; }
+    button,.button { min-height:48px; padding:11px 16px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); cursor:pointer; text-align:center; text-decoration:none; }
+    button:hover,.button:hover { border-color:var(--accent); }
+    button:disabled { opacity:.55; cursor:default; }
+    button.primary,.button.primary { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+    nav button { border:0; padding:10px 4px; background:transparent; font-size:15px; }
+    nav button[aria-current="page"] { color:var(--accent); background:var(--soft); font-weight:650; }
+    :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+    .card { padding:22px; border:1px solid var(--line); border-radius:16px; background:var(--surface); margin-bottom:18px; }
+    .stack { display:grid; gap:12px; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .row>* { flex:1; }
+    label { display:block; margin:16px 0 7px; font-size:15px; font-weight:600; }
+    input:not([type=checkbox]):not([type=radio]),select,textarea { width:100%; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); min-height:48px; }
+    textarea { resize:vertical; min-height:88px; }
+    input[type=checkbox],input[type=radio] { width:22px; height:22px; accent-color:var(--accent); flex-shrink:0; }
+    .check { display:flex; align-items:center; gap:12px; min-height:48px; font-weight:400; }
+    fieldset { border:0; padding:0; margin:16px 0; }
+    legend { font-weight:600; }
+    .timer { font-size:64px; font-variant-numeric:tabular-nums; letter-spacing:-3px; margin:12px 0; line-height:1.2; }
+    .notice { padding:13px 16px; background:var(--soft); border-radius:10px; margin:16px 0; }
+    #storage-message { border:2px solid var(--accent); }
+    #feedback:empty { display:none; }
+    .result,.history p { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .history { padding:18px 0; border-bottom:1px solid var(--line); }
+    .history h3 { font-size:16px; }
+    .history p { margin:5px 0; }
+    .history .meta { font-size:14px; color:var(--muted); }
+    .button { display:block; }
+    .wide { width:100%; margin-top:18px; }
+    [hidden] { display:none !important; }
+    footer { margin-top:30px; font-size:13px; color:var(--muted); }
+    @media (max-width:360px) { .shell { padding:20px 14px; } .card { padding:18px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header><h1>Start First</h1><small>One result. Ten minutes.</small></header>
+    <p id="storage-message" class="notice" role="alert" hidden></p>
+    <nav aria-label="Main navigation">
+      <button type="button" data-view="today" aria-current="page">Today</button>
+      <button type="button" data-view="plan">Plan</button>
+      <button type="button" data-view="history">History</button>
+      <button type="button" data-view="settings">Settings</button>
+    </nav>
+    <p id="feedback" class="notice" role="status" aria-live="polite"></p>
+    <main id="main"></main>
+    <footer>Private to this device. No account, no tracking, no network requests. Your news opens only when you choose it.</footer>
+  </div>
+  <script>
+    'use strict';
+    const KEY = 'start-first-v1';
+    const MINUTES = 10 * 60 * 1000;
+    const DEFAULT_AREAS = ['Career', 'Health', 'Personal growth', 'Art'];
+    const main = document.getElementById('main');
+    const feedback = document.getElementById('feedback');
+    let view = 'today';
+    let observedDay = dayKey();
+    let storageMessage = '';
+
+    // Construct calendar dates in local time, including across daylight-saving changes.
+    function dayKey(date = new Date()) {
+      return [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-');
+    }
+    function localDate(key) {
+      const [year, month, day] = key.split('-').map(Number);
+      return new Date(year, month-1, day, 12);
+    }
+    function shiftDay(key, amount) {
+      const date = localDate(key);
+      date.setDate(date.getDate()+amount);
+      return dayKey(date);
+    }
+    function dateLabel(key) {
+      return localDate(key).toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric', year:'numeric'});
+    }
+    function validDay(key) {
+      return typeof key === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(key) && key >= '1970-01-01' && dayKey(localDate(key)) === key;
+    }
+    function freshData() {
+      return {schemaVersion:1, firstDay:dayKey(), settings:{newsUrl:'', areas:[...DEFAULT_AREAS]}, days:{}};
+    }
+    function validUrl(value) {
+      try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); }
+      catch { return false; }
+    }
+    function plainObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
+    function shortText(value, limit) { return typeof value === 'string' && value.length <= limit; }
+    function timestamp(value) { return Number.isSafeInteger(value) && value > 0 && value <= 8640000000000000; }
+    // Build a new object rather than trusting properties from an imported file.
+    function validateData(input) {
+      if (!plainObject(input) || input.schemaVersion !== 1 || !validDay(input.firstDay) || input.firstDay > dayKey()) throw Error('Unsupported schema or invalid first day.');
+      const s = input.settings;
+      if (!plainObject(s) || !shortText(s.newsUrl,2048) || (s.newsUrl && !validUrl(s.newsUrl))) throw Error('The news URL must use http or https.');
+      if (!Array.isArray(s.areas) || s.areas.length < 1 || s.areas.length > 20 || s.areas.some(a => !shortText(a,60) || !a.trim() || a !== a.trim()) || new Set(s.areas).size !== s.areas.length) throw Error('Use 1–20 unique, nonempty life areas (60 characters each).');
+      if (!plainObject(input.days)) throw Error('Invalid day records.');
+      const clean = {schemaVersion:1, firstDay:input.firstDay, settings:{newsUrl:s.newsUrl, areas:[...s.areas]}, days:{}};
+      let active = 0;
+      for (const [key, d] of Object.entries(input.days)) {
+        if (!validDay(key) || key < input.firstDay || key > shiftDay(dayKey(),1) || !plainObject(d)) throw Error('Invalid record date.');
+        if (!['planned','running','finished','skipped','rest','sick'].includes(d.status) || !shortText(d.result,300) || !shortText(d.area,60) || !shortText(d.tiny,300) || !shortText(d.note,500)) throw Error('Invalid record text or status.');
+        if (typeof d.usedTiny !== 'boolean' || ![null,'yes','partly','no'].includes(d.outcome) || ![null,true,false].includes(d.newsOpenedFirst)) throw Error('Invalid outcome or flags.');
+        if (d.newsOpenedAt !== null && !timestamp(d.newsOpenedAt)) throw Error('Invalid news time.');
+        if (d.endTime !== null && !timestamp(d.endTime)) throw Error('Invalid timer.');
+        if (['planned','running','finished'].includes(d.status) && (!d.result.trim() || !d.area.trim())) throw Error('A planned block needs a result and area.');
+        if (d.usedTiny && !d.tiny.trim()) throw Error('Tiny version is missing.');
+        if (['running','finished'].includes(d.status) && d.endTime === null) throw Error('Timer end time is missing.');
+        if (d.endTime !== null && dayKey(new Date(d.endTime - MINUTES)) !== key) throw Error('Timer does not belong to its day.');
+        if (d.status === 'running') {
+          active++;
+          if (d.endTime > Date.now()+MINUTES+1000) throw Error('Timer is more than ten minutes in the future.');
+        }
+        if (d.status === 'finished' && d.endTime > Date.now()) throw Error('A finished timer cannot end in the future.');
+        if (d.status !== 'finished' && (d.outcome !== null || d.note !== '' || d.newsOpenedAt !== null)) throw Error('Only finished blocks can have a check-in.');
+        if (d.newsOpenedAt !== null && d.outcome === null) throw Error('News requires a saved check-in.');
+        if ((d.status === 'skipped') !== (typeof d.newsOpenedFirst === 'boolean')) throw Error('A skipped day must record whether news was opened first.');
+        if (key > dayKey() && d.status !== 'planned') throw Error('Future days can only contain plans.');
+        clean.days[key] = {result:d.result, area:d.area, tiny:d.tiny, status:d.status, endTime:d.endTime, usedTiny:d.usedTiny, outcome:d.outcome, note:d.note, newsOpenedAt:d.newsOpenedAt, newsOpenedFirst:d.newsOpenedFirst};
+      }
+      if (active > 1) throw Error('Only one timer can run at a time.');
+      return clean;
+    }
+    function storageWarning(message) {
+      storageMessage = message;
+      const banner = document.getElementById('storage-message');
+      banner.textContent = message;
+      banner.hidden = false;
+    }
+    function readData() {
+      let raw;
+      try { raw = localStorage.getItem(KEY); }
+      catch { storageWarning('Storage is unavailable. Changes will stay only in this open page. Export your data before closing.'); return freshData(); }
+      if (raw !== null) {
+        try { return validateData(JSON.parse(raw)); }
+        catch { storageWarning('Saved data could not be read. It has not been overwritten. This page is using temporary data; export it before closing or import a valid backup.'); }
+      }
+      return freshData();
+    }
+    let data = readData();
+    function save() {
+      // Keep an unreadable backup intact until the user explicitly imports a replacement.
+      if (storageMessage.startsWith('Saved data')) return false;
+      try { localStorage.setItem(KEY,JSON.stringify(data)); return true; }
+      catch { storageWarning('Storage is unavailable. Changes will stay only in this open page. Export your data before closing.'); return false; }
+    }
+    function record(plan = {}) {
+      return {result:'',area:'',tiny:'',status:'planned',endTime:null,usedTiny:false,outcome:null,note:'',newsOpenedAt:null,newsOpenedFirst:null,...plan};
+    }
+    function reconcile() {
+      let changed = false;
+      for (const d of Object.values(data.days)) {
+        if (d.status === 'running' && d.endTime <= Date.now()) { d.status = 'finished'; changed = true; }
+      }
+      if (changed) save();
+      return changed;
+    }
+    function streak() {
+      let count = 0, misses = 0;
+      const today = dayKey();
+      for (let key = data.firstDay; key <= today; key = shiftDay(key,1)) {
+        const status = data.days[key]?.status;
+        if (status === 'finished') { count++; misses = 0; }
+        else if (status === 'rest' || status === 'sick') continue;
+        else if (key < today || status === 'skipped') { misses++; if (misses >= 2) count = 0; }
+      }
+      return {count, misses};
+    }
+    function node(tag, text, className) {
+      const element = document.createElement(tag);
+      if (text !== undefined) element.textContent = text;
+      if (className) element.className = className;
+      return element;
+    }
+    function button(text, action, primary = false) {
+      const b = node('button',text,primary ? 'primary' : '');
+      b.type = 'button'; b.addEventListener('click',action); return b;
+    }
+    function field(parent, label, id, type = 'text', value = '', max = 300) {
+      const caption = node('label',label); caption.htmlFor = id;
+      const input = node(type === 'textarea' ? 'textarea' : 'input');
+      input.id = id; input.value = value; input.maxLength = max;
+      if (type !== 'textarea') input.type = type;
+      parent.append(caption,input); return input;
+    }
+    function selectField(parent,label,id,options,value) {
+      const caption = node('label',label); caption.htmlFor = id;
+      const select = node('select'); select.id = id;
+      options.forEach(([key,text]) => { const option = node('option',text); option.value = key; select.append(option); });
+      select.value = value; parent.append(caption,select); return select;
+    }
+    function say(message) { feedback.textContent = message; }
+    function go(next) { view = next; say(''); render(); main.querySelector('h2')?.focus(); }
+    function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h); }
+    function summary(parent,d) {
+      if (d.area) parent.append(node('p',d.area,'eyebrow'));
+      if (d.result) parent.append(node('h3',d.result,'result'));
+      if (d.usedTiny) parent.append(node('p','Tiny version: '+d.tiny,'result'));
+    }
+    function newsButton(parent,key) {
+      if (!data.settings.newsUrl) {
+        parent.append(node('p','Add your news URL in Settings to open your brief.','muted'),button('Set news URL',()=>go('settings')));
+        return;
+      }
+      const link = node('a','Open news brief ↗','button primary');
+      link.href = data.settings.newsUrl; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      link.addEventListener('click',() => { data.days[key].newsOpenedAt = Date.now(); save(); });
+      parent.append(link);
+    }
+    function finishCard(key,d) {
+      const card = node('section',undefined,'card');
+      if (key !== dayKey()) card.append(node('p','Block from '+dateLabel(key),'eyebrow'));
+      summary(card,d);
+      card.append(node('p','Ten minutes complete.'));
+      if (d.outcome === null) {
+        const form = node('form');
+        const group = node('fieldset'); group.append(node('legend','Did you produce the result?'));
+        for (const [value,text] of [['yes','Yes'],['partly','Partly'],['no','No']]) {
+          const label = node('label',undefined,'check');
+          const radio = node('input'); radio.type = 'radio'; radio.name = 'outcome'; radio.value = value; radio.required = true;
+          label.append(radio,document.createTextNode(text)); group.append(label);
+        }
+        const note = field(form,'Short note (optional)','note-'+key,'textarea','',500);
+        form.prepend(group);
+        const submit = node('button','Save check-in','primary wide'); submit.type = 'submit'; form.append(submit);
+        form.addEventListener('submit',event => {
+          event.preventDefault();
+          const outcome = form.querySelector('input[name=outcome]:checked');
+          if (!outcome || data.days[key].outcome !== null) return;
+          d.outcome = outcome.value; d.note = note.value.trim(); save(); render(); say('Check-in saved.');
+        });
+        card.append(form);
+      } else {
+        card.append(node('p','Result: '+({yes:'Yes',partly:'Partly',no:'No'}[d.outcome])));
+        if (d.note) card.append(node('p',d.note,'result'));
+        newsButton(card,key);
+      }
+      return card;
+    }
+    function showToday() {
+      const today = dayKey();
+      title('A little focus, first.');
+      main.append(node('p',dateLabel(today),'muted'));
+      const s = streak();
+      main.append(node('p','Current streak · '+s.count+' '+(s.count === 1 ? 'day' : 'days'),'muted'));
+      if (s.misses === 1) main.append(node('p','Never miss twice. A tiny version is enough for your next block.','notice'));
+      const running = Object.entries(data.days).find(([,d])=>d.status === 'running');
+      if (running) {
+        const [key,d] = running;
+        const card = node('section',undefined,'card');
+        if (key !== today) card.append(node('p','Started '+dateLabel(key),'eyebrow'));
+        summary(card,d);
+        card.append(node('p','Stay with this one result.','muted'));
+        const timer = node('p',remaining(d),'timer'); timer.id = 'countdown'; timer.setAttribute('role','timer'); timer.setAttribute('aria-label','Time remaining');
+        card.append(timer,node('p','The timer keeps its place if you close this page.','muted'));
+        addSkip(card,key); main.append(card); return;
+      }
+      for (const [key,d] of Object.entries(data.days).sort(([a],[b])=>a.localeCompare(b))) {
+        if (key < today && d.status === 'finished' && d.outcome === null) main.append(finishCard(key,d));
+      }
+      const d = data.days[today];
+      if (d?.status === 'finished') main.append(finishCard(today,d));
+      else if (d && ['rest','sick','skipped'].includes(d.status)) {
+        const card = node('section',undefined,'card');
+        card.append(node('h3',d.status === 'rest' ? 'Rest day' : d.status === 'sick' ? 'Sick day' : 'Skipped'));
+        summary(card,d);
+        card.append(node('p',d.status === 'skipped' ? 'Block not done. News opened first: '+(d.newsOpenedFirst ? 'Yes.' : 'No.') : 'This day will neither add to nor break your streak.','muted'));
+        main.append(card);
+      } else {
+        const card = node('section',undefined,'card');
+        if (d) {
+          summary(card,d);
+          let tiny;
+          if (d.tiny) {
+            const label = node('label',undefined,'check'); tiny = node('input'); tiny.type = 'checkbox';
+            label.append(tiny,document.createTextNode('Use tiny version: '+d.tiny)); card.append(label);
+          }
+          card.append(button('Start 10 minutes',()=>{
+            reconcile();
+            if (data.days[today]?.status !== 'planned' || dayKey() !== today || Object.values(data.days).some(x=>x.status === 'running')) { render(); return; }
+            d.usedTiny = Boolean(tiny?.checked); d.endTime = Date.now()+MINUTES; d.status = 'running'; save(); render();
+          },true));
+          card.append(node('p','Ten focused minutes. One visible result.','muted'));
+        } else {
+          card.append(node('h3','What will be visible when you finish?'),node('p','Choose one result for today, then give it ten minutes.','muted'),button('Plan today',()=>go('plan'),true));
+          const previous = Object.keys(data.days).filter(key=>key<today && data.days[key].status === 'planned').sort().pop();
+          if (previous) {
+            const old = data.days[previous];
+            card.append(node('p','Unstarted plan from '+dateLabel(previous)+': '+old.result,'notice result'));
+            card.append(button('Use this plan today',()=>{
+              if (dayKey() !== today || data.days[today]) { render(); return; }
+              data.days[today] = record({result:old.result,area:old.area,tiny:old.tiny}); save(); render();
+            }));
+          }
+        }
+        addSkip(card,today);
+        const row = node('div',undefined,'row');
+        for (const status of ['rest','sick']) row.append(button(status === 'rest' ? 'Rest day' : 'Sick day',()=>{
+          if (dayKey() !== today || (data.days[today] && data.days[today].status !== 'planned')) { render(); return; }
+          data.days[today] = record({...data.days[today],status}); save(); render();
+        }));
+        card.append(row); main.append(card);
+      }
+      main.append(button('Plan '+(data.days[today] ? 'tomorrow' : 'today'),()=>go('plan')));
+    }
+    function addSkip(parent,key) {
+      const details = node('details');
+      const toggle = node('summary','Skipped'); toggle.className = 'button'; details.append(toggle);
+      const form = node('form');
+      form.append(node('p','Record that this block was not done. This does not open the news.','muted'));
+      const news = selectField(form,'Did you open the news before this block?','skip-news-'+key,[['','Choose an answer'],['yes','Yes'],['no','No']],''); news.required = true;
+      const submit = node('button','Record skipped','wide'); submit.type = 'submit'; form.append(submit);
+      form.addEventListener('submit',event=>{
+        event.preventDefault();
+        if (!news.value) return;
+        if (reconcile() || (key === observedDay && dayKey() !== key)) { render(); return; }
+        const current = data.days[key];
+        if (current && !['planned','running'].includes(current.status)) { render(); return; }
+        data.days[key] = record({...current,status:'skipped',newsOpenedFirst:news.value === 'yes'}); save(); render();
+      });
+      details.append(form); details.style.margin = '18px 0'; parent.append(details);
+    }
+    function showPlan() {
+      title('One visible result.');
+      main.append(node('p','Something you can point to after ten minutes.','muted'));
+      const today = dayKey(), tomorrow = shiftDay(today,1);
+      const options = [];
+      if (!data.days[today] || data.days[today].status === 'planned') options.push([today,'Today · '+dateLabel(today)]);
+      options.push([tomorrow,'Tomorrow · '+dateLabel(tomorrow)]);
+      const form = node('form',undefined,'card');
+      const date = selectField(form,'Plan for','plan-date',options,data.days[today] ? tomorrow : today);
+      const result = field(form,'Visible result','plan-result'); result.required = true; result.placeholder = 'e.g. Write the opening paragraph';
+      const area = selectField(form,'Life area','plan-area',data.settings.areas.map(a=>[a,a]),data.settings.areas[0]);
+      const tiny = field(form,'Tiny version for a bad day (optional)','plan-tiny'); tiny.placeholder = 'e.g. Write one sentence';
+      const load = ()=>{
+        const d = data.days[date.value]; result.value = d?.result || ''; tiny.value = d?.tiny || '';
+        area.replaceChildren(...data.settings.areas.map(a=>{ const o = node('option',a); o.value = a; return o; }));
+        if (d?.area && !data.settings.areas.includes(d.area)) { const o = node('option',d.area); o.value = d.area; area.append(o); }
+        area.value = d?.area || data.settings.areas[0];
+      };
+      load(); date.addEventListener('change',load);
+      const submit = node('button','Save plan','primary wide'); submit.type = 'submit'; form.append(submit);
+      form.addEventListener('submit',event=>{
+        event.preventDefault();
+        if (dayKey() !== today) { render(); say('A new day has started. Choose the date for your plan again.'); return; }
+        if (!result.value.trim()) { result.setCustomValidity('Enter one visible result.'); result.reportValidity(); return; }
+        const existing = data.days[date.value];
+        if (existing && existing.status !== 'planned') { render(); return; }
+        data.days[date.value] = record({result:result.value.trim(), area:area.value, tiny:tiny.value.trim()});
+        save(); go('today'); say('Plan saved for '+dateLabel(date.value)+'.');
+      });
+      result.addEventListener('input',()=>result.setCustomValidity(''));
+      main.append(form);
+    }
+    function showHistory() {
+      title('The last 14 days.');
+      const s = streak();
+      main.append(node('p','Current streak · '+s.count+' '+(s.count === 1 ? 'day' : 'days')));
+      main.append(node('p','Finished blocks count, including tiny versions. Rest and sick days are neutral. One miss is allowed; two consecutive misses reset the streak.','muted'));
+      if (s.misses === 1) main.append(node('p','Never miss twice. Start small next time.','notice'));
+      for (let i=0; i<14; i++) {
+        const key = shiftDay(dayKey(),-i);
+        if (key < data.firstDay) break;
+        const d = data.days[key];
+        const item = node('article',undefined,'history'); item.append(node('h3',dateLabel(key)));
+        const status = d?.status;
+        const outcome = status === 'finished' ? 'Finished · '+({yes:'Result produced',partly:'Result partly produced',no:'Result not produced'}[d.outcome] || 'Check-in pending') : status === 'rest' ? 'Rest day' : status === 'sick' ? 'Sick day' : status === 'skipped' ? 'Skipped · news opened first: '+(d.newsOpenedFirst ? 'yes' : 'no') : status === 'running' ? 'In progress' : key === dayKey() ? (d ? 'Planned' : 'No plan yet') : 'Missed';
+        item.append(node('p',d?.area || 'No area','meta'),node('p',d?.result || 'No result planned'),node('p',outcome,'meta'));
+        if (d?.usedTiny) item.append(node('p','Tiny version used: '+d.tiny,'meta'));
+        item.append(node('p',d?.note ? 'Note: '+d.note : 'Note: —','meta')); main.append(item);
+      }
+    }
+    function downloadData() {
+      const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const url = URL.createObjectURL(blob), link = node('a');
+      link.href = url; link.download = 'start-first-'+dayKey()+'.json';
+      document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    const BACKUP_KEY = 'start-first-backup-time';
+    function backupStatus() {
+      try { const saved=localStorage.getItem(BACKUP_KEY); return saved ? 'Letzte Sicherung: '+new Date(Number(saved)).toLocaleString() : 'Noch keine Sicherung'; }
+      catch { return 'Noch keine Sicherung'; }
+    }
+    async function backupData() {
+      const name='start-first-backup-'+dayKey()+'.json';
+      const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
+      const mark=()=>{ try { localStorage.setItem(BACKUP_KEY,String(Date.now())); } catch {} };
+      if (navigator.canShare && navigator.canShare({files:[file]}) && navigator.share) {
+        try { await navigator.share({files:[file],title:name}); mark(); return; }
+        catch (error) { if (error.name==='AbortError') return; }
+      }
+      downloadData(); mark();
+    }
+    function showSettings() {
+      title('Keep it yours.');
+      const form = node('form',undefined,'card');
+      const news = field(form,'News brief URL','news-url','url',data.settings.newsUrl,2048); news.placeholder = 'https://…';
+      form.append(node('small','Use an http or https link. Leave empty to set it later.'));
+      const areas = field(form,'Life areas · one per line','areas','textarea',data.settings.areas.join('\n'),1219);
+      form.append(node('small','1–20 unique areas, up to 60 characters each. Past entries keep their original area.'));
+      const submit = node('button','Save settings','primary wide'); submit.type = 'submit'; form.append(submit);
+      form.addEventListener('submit',event=>{
+        event.preventDefault();
+        const url = news.value.trim();
+        if (url && !validUrl(url)) { news.setCustomValidity('Use an http or https URL.'); news.reportValidity(); return; }
+        const list = areas.value.split('\n').map(s=>s.trim()).filter(Boolean);
+        if (!list.length || list.length > 20 || list.some(a=>a.length > 60) || new Set(list).size !== list.length) { areas.setCustomValidity('Use 1–20 unique areas, up to 60 characters each.'); areas.reportValidity(); return; }
+        data.settings = {newsUrl:url,areas:list}; const stored = save(); say(stored ? 'Settings saved on this device.' : 'Settings updated for this page. See the storage message above.');
+      });
+      news.addEventListener('input',()=>news.setCustomValidity('')); areas.addEventListener('input',()=>areas.setCustomValidity(''));
+      main.append(form);
+      const backup = node('section',undefined,'card');
+      backup.append(node('h3','Your data'),node('p','Export a backup, or replace this device’s data with a Start First JSON export.','muted'),button('Export JSON',downloadData),button('In Drive sichern',backupData),node('p',backupStatus(),'muted'));
+      const label = node('label','Import JSON'); label.htmlFor = 'import';
+      const input = node('input'); input.id = 'import'; input.type = 'file'; input.accept = '.json,application/json';
+      const preview = node('div'); backup.append(label,input,preview);
+      input.addEventListener('change',async()=>{
+        preview.replaceChildren();
+        const file = input.files[0]; if (!file) return;
+        try {
+          if (file.size > 5*1024*1024) throw Error('Choose a JSON file smaller than 5 MB.');
+          const imported = validateData(JSON.parse(await file.text()));
+          preview.append(node('p','Valid backup: '+Object.keys(imported.days).length+' day records, beginning '+dateLabel(imported.firstDay)+'. Importing will replace all current plans, history and settings.','notice'));
+          preview.append(button('Replace all data with this backup',()=>{
+            // Validate again in case the date changed while reviewing the import.
+            try { validateData(imported); } catch (error) { say('Import failed: '+error.message); return; }
+            if (!window.confirm('Replace all Start First data on this device with this backup? This cannot be undone.')) return;
+            data = imported; storageMessage = ''; document.getElementById('storage-message').hidden = true;
+            save(); reconcile(); go('today'); say('Backup imported.');
+          }));
+        } catch (error) { preview.append(node('p','Import failed: '+error.message,'notice')); }
+      });
+      main.append(backup);
+    }
+    function remaining(d) {
+      const seconds = Math.max(0,Math.ceil((d.endTime-Date.now())/1000));
+      return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+    }
+    function render() {
+      reconcile(); observedDay = dayKey(); main.replaceChildren();
+      document.querySelectorAll('nav button').forEach(b=>{
+        if (b.dataset.view === view) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+      });
+      ({today:showToday,plan:showPlan,history:showHistory,settings:showSettings}[view])();
+    }
+    function tick() {
+      const changed = reconcile();
+      if (observedDay !== dayKey() || changed) {
+        const newDay = observedDay !== dayKey(); render();
+        if (newDay) say('A new day has started. Today is '+dateLabel(dayKey())+'.');
+        return;
+      }
+      const running = Object.values(data.days).find(d=>d.status === 'running');
+      const timer = document.getElementById('countdown');
+      if (timer && running) timer.textContent = remaining(running);
+    }
+    document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+    document.addEventListener('visibilitychange',()=>{ if (!document.hidden) tick(); });
+    window.addEventListener('focus',tick);
+    save(); render(); setInterval(tick,1000);
+  </script>
+</body>
+</html>
