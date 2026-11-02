@@ -66,7 +66,7 @@
   <script>
     'use strict';
     const KEY = 'gym-log-v1';
-    const SCHEMA = 1;
+    const SCHEMA = 2;
     const DEFAULTS = {
       upper:['Chest Press','Low Row','Vertical Traction','Shoulder Press','Reverse Fly','Pectoral einseitig','Back Extensions','Hammer Curls','Trizeps Pushdown'],
       lower:['Leg Press','Leg Curl','Leg Extension','Calf Raises','Adduktoren','Abduktoren','Reverse Crunches','Schrägbank-Sit-ups']
@@ -125,7 +125,14 @@
     function stamp(x) { return x===null || (Number.isSafeInteger(x) && x>0 && x<=8640000000000000); }
     function natural(x) { return x===null || (Number.isSafeInteger(x) && x>0 && x<=1000); }
     function weight(x) { return x===null || (typeof x==='number' && Number.isFinite(x) && x>=0 && x<=1000); }
-    function fresh() { return {schemaVersion:SCHEMA,settings:{restSeconds:90,templates:{upper:{name:'Oberkörper',exercises:[...DEFAULTS.upper]},lower:{name:'Unterkörper',exercises:[...DEFAULTS.lower]}},steps:{}},sessions:[]}; }
+    function fresh() { return {schemaVersion:SCHEMA,settings:{restSeconds:90,exerciseRestSeconds:{},proteinTarget:140,scoopGrams:35,proteinPerScoop:26,creatineDose:5,templates:{upper:{name:'Oberkörper',exercises:[...DEFAULTS.upper]},lower:{name:'Unterkörper',exercises:[...DEFAULTS.lower]}},steps:{}},nutrition:{},sessions:[]}; }
+    function migrateData(input) {
+      if (!obj(input) || ![1,SCHEMA].includes(input.schemaVersion)) throw Error('Schema ungültig.');
+      if (input.schemaVersion===SCHEMA) return input;
+      const old=input, settings=old.settings;
+      if (!obj(settings)) throw Error('Einstellungen ungültig.');
+      return {...old,schemaVersion:SCHEMA,settings:{...settings,exerciseRestSeconds:{},proteinTarget:140,scoopGrams:35,proteinPerScoop:26,creatineDose:5},nutrition:{}};
+    }
     function validSet(s) {
       if (!obj(s) || !['planned','completed','skipped','uncertain'].includes(s.status) || !natural(s.targetReps) || !weight(s.targetWeight) || !natural(s.actualReps) || !weight(s.actualWeight) || ![null,'leicht','mittel','schwer'].includes(s.rating) || !stamp(s.timestamp) || ![null,'live','manual_correction','imported'].includes(s.source) || !Array.isArray(s.changes) || s.changes.length>100) throw Error('Ungültiger Satz.');
       if (s.status==='planned' || s.status==='skipped') { if (s.actualReps!==null || s.actualWeight!==null || s.rating!==null || s.timestamp!==null) throw Error('Offener Satz enthält Ist-Werte.'); }
@@ -134,9 +141,17 @@
       return {status:s.status,targetReps:s.targetReps,targetWeight:s.targetWeight,actualReps:s.actualReps,actualWeight:s.actualWeight,rating:s.rating,timestamp:s.timestamp,source:s.source,changes:s.changes.map(c=>({at:c.at,status:c.status,actualReps:c.actualReps,actualWeight:c.actualWeight,rating:c.rating,timestamp:c.timestamp,source:c.source}))};
     }
     function validateData(input) {
+      input=migrateData(input);
       if (!obj(input) || input.schemaVersion!==SCHEMA || !obj(input.settings) || !Array.isArray(input.sessions) || input.sessions.length>10000) throw Error('Schema oder Sitzungen ungültig.');
       const s=input.settings, t=s.templates;
-      if (!Number.isInteger(s.restSeconds) || s.restSeconds<15 || s.restSeconds>900 || !obj(t) || !obj(s.steps)) throw Error('Einstellungen ungültig.');
+      if (!Number.isInteger(s.restSeconds) || s.restSeconds<15 || s.restSeconds>900 || !obj(t) || !obj(s.steps) || !obj(s.exerciseRestSeconds) || !Number.isFinite(s.proteinTarget) || s.proteinTarget<=0 || s.proteinTarget>300 || !Number.isFinite(s.scoopGrams) || s.scoopGrams<=0 || s.scoopGrams>300 || !Number.isFinite(s.proteinPerScoop) || s.proteinPerScoop<=0 || s.proteinPerScoop>300 || !Number.isFinite(s.creatineDose) || s.creatineDose<=0 || s.creatineDose>100) throw Error('Einstellungen ungültig.');
+      for (const [name,n] of Object.entries(s.exerciseRestSeconds)) if (!name || name.length>80 || !Number.isInteger(n) || n<15 || n>900) throw Error('Übungspause ungültig.');
+      if (!obj(input.nutrition)) throw Error('Ernährung ungültig.');
+      const nutrition={};
+      for (const [day,entry] of Object.entries(input.nutrition)) {
+        if (!dateValid(day) || !obj(entry) || !Array.isArray(entry.protein) || entry.protein.length>10000 || typeof entry.creatine!=='boolean' || entry.protein.some(x=>!obj(x) || typeof x.g!=='number' || !Number.isFinite(x.g) || x.g<=0 || x.g>300 || !stamp(x.time) || x.time===null)) throw Error('Ernährung ungültig.');
+        nutrition[day]={protein:entry.protein.map(x=>({g:x.g,time:x.time})),creatine:entry.creatine};
+      }
       const templates={};
       for (const key of ['upper','lower']) {
         const item=t[key];
@@ -161,7 +176,7 @@
         sessions.push({id:session.id,date:session.date,type:session.type,status:session.status,startTime:session.startTime,endTime:session.endTime,restEnd:session.restEnd ?? null,note:session.note,exercises});
       }
       if (active>1) throw Error('Mehrere aktive Sitzungen.');
-      return {schemaVersion:SCHEMA,settings:{restSeconds:s.restSeconds,templates,steps},sessions};
+      return {schemaVersion:SCHEMA,settings:{restSeconds:s.restSeconds,exerciseRestSeconds:{...s.exerciseRestSeconds},proteinTarget:s.proteinTarget,scoopGrams:s.scoopGrams,proteinPerScoop:s.proteinPerScoop,creatineDose:s.creatineDose,templates,steps},nutrition,sessions};
     }
     function warning(message) { storageProblem=message; const e=document.getElementById('storage-message'); e.textContent=message; e.hidden=false; }
     function read() {
@@ -171,6 +186,7 @@
       return fresh();
     }
     let data=read();
+    try { const saved=localStorage.getItem(KEY); if (saved && JSON.parse(saved).schemaVersion!==SCHEMA) save(); } catch {}
     function save() {
       if (storageProblem.startsWith('Gespeicherte Daten')) return false;
       try { localStorage.setItem(KEY,JSON.stringify(data)); return true; }
@@ -180,6 +196,7 @@
     function completed() { return data.sessions.filter(s=>s.status==='completed').sort((a,b)=>(b.startTime || Date.parse(b.date))-(a.startTime || Date.parse(a.date))); }
     function previous(name,excludeId=null) { return completed().filter(s=>s.id!==excludeId).flatMap(s=>s.exercises.filter(e=>e.name===name).map(e=>({session:s,exercise:e})))[0] || null; }
     function step(name) { return data.settings.steps[name] || 2.5; }
+    function restFor(name) { return data.settings.exerciseRestSeconds[name] || data.settings.restSeconds; }
     function bodyweight(name) { return BODYWEIGHT.includes(name); }
     function emptySet(r,w) { return {status:'planned',targetReps:r,targetWeight:w,actualReps:null,actualWeight:null,rating:null,timestamp:null,source:null,changes:[]}; }
     function targets(name) {
@@ -213,6 +230,15 @@
     }
     function showHome() {
       title('Heute trainieren');
+      const todayNutrition=data.nutrition[today()];
+      const totalProtein=todayNutrition?.protein.reduce((sum,x)=>sum+x.g,0) || 0;
+      const nutritionCard=node('section',undefined,'card'); nutritionCard.append(node('h3','Heute'),node('p','Protein: '+String(Math.round(totalProtein*10)/10).replace('.',',')+' von '+String(data.settings.proteinTarget).replace('.',',')+' g'));
+      nutritionCard.append(button('Shake +'+String(data.settings.proteinPerScoop).replace('.',',')+' g',()=>addProtein(data.settings.proteinPerScoop)));
+      nutritionCard.append(button('Andere Menge',()=>{ const value=window.prompt('Protein in Gramm eingeben'); if (value===null) return; const n=Number(value.trim().replace(',','.')); if (!Number.isFinite(n) || n<=0 || n>300 || !/^\d+(?:[,.]\d)?$/.test(value.trim())) { say('Bitte eine positive Menge bis 300 g mit höchstens einer Dezimalstelle eingeben.'); return; } addProtein(n); }));
+      nutritionCard.append(button('Rückgängig',()=>{ const entry=data.nutrition[today()]; if (!entry?.protein.length) { say('Heute gibt es keinen Protein-Eintrag zum Entfernen.'); return; } entry.protein.pop(); save(); render(); }));
+      nutritionCard.append(node('p','Kreatin: '+(todayNutrition?.creatine?'genommen':'offen')));
+      nutritionCard.append(button(todayNutrition?.creatine?'Kreatin zurücksetzen':'Kreatin genommen',()=>{ const entry=data.nutrition[today()] || (data.nutrition[today()]={protein:[],creatine:false}); entry.creatine=!entry.creatine; save(); render(); }));
+      main.append(nutritionCard);
       const session=active();
       if (session) {
         const card=node('section',undefined,'card');
@@ -236,6 +262,7 @@
       }
       main.append(card);
     }
+    function addProtein(g) { const entry=data.nutrition[today()] || (data.nutrition[today()]={protein:[],creatine:false}); entry.protein.push({g,time:Date.now()}); save(); render(); }
     function planExercise(e,index) {
       const item=node('section',undefined,'card'); item.append(node('h3',(index+1)+'. '+e.name));
       if (e.note) item.append(node('p',e.note,'muted'));
@@ -283,24 +310,26 @@
       const n=e.sets.slice(index+1).find(s=>s.status==='planned');
       return n ? (bodyweight(e.name) ? reps(n.targetReps)+' Wdh.' : kg(n.targetWeight)) : 'kein weiterer Satz';
     }
-    function startRest(s) { s.restEnd=Date.now()+data.settings.restSeconds*1000; restAnnounced=false; save(); }
+    function startRest(s,name=currentExercise(s)?.name) { const seconds=restFor(name || ''); s.restEnd=Date.now()+seconds*1000; restAnnounced=false; save(); }
     function logSet(s,e,index,actualReps,actualWeight) {
       const set=e.sets[index]; if (!set || set.status!=='planned') return;
       set.status='completed'; set.actualReps=actualReps; set.actualWeight=actualWeight; set.timestamp=Date.now(); set.source='live';
       const old=previous(e.name,s.id)?.exercise.sets[index];
       lastFeedback=compare(set,old)+' Nächster Satz: '+nextWeight(e,index)+'.';
       afterSet={exerciseId:e.id,index};
-      startRest(s); render();
+      startRest(s,e.name); render();
     }
     function restCard(s) {
       if (!s.restEnd) return;
       const card=node('section',undefined,'card');
+      const e=currentExercise(s); const seconds=restFor(e?.name || '');
+      card.append(node('p','Pause: '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'),'muted'));
       const left=Math.max(0,Math.ceil((s.restEnd-Date.now())/1000));
       card.append(node('h3',left?'Pause':'Pause vorbei'));
       const timer=node('p',String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0'),'timer'); timer.id='rest-timer'; timer.setAttribute('role','timer'); card.append(timer);
       if (!left) card.append(node('p','Bereit für den nächsten Satz.','notice'));
       const row=node('div',undefined,'row');
-      row.append(button('−15 s',()=>{ s.restEnd=Math.max(Date.now(),s.restEnd-15000); save(); render(); }),button('+15 s',()=>{ s.restEnd=Math.max(Date.now(),s.restEnd)+15000; save(); render(); }),button('Überspringen',()=>{ s.restEnd=null; save(); render(); }));
+      row.append(button('−15 s',()=>{ const n=Math.max(15,seconds-15); if(e) data.settings.exerciseRestSeconds[e.name]=n; s.restEnd=Math.max(Date.now(),s.restEnd-15000); save(); render(); }),button('+15 s',()=>{ const n=Math.min(900,seconds+15); if(e) data.settings.exerciseRestSeconds[e.name]=n; s.restEnd=Math.max(Date.now(),s.restEnd)+15000; save(); render(); }),button('Überspringen',()=>{ s.restEnd=null; save(); render(); }));
       card.append(row); main.append(card);
     }
     function ratingCard(s) {
@@ -362,6 +391,8 @@
       title('Training · '+data.settings.templates[s.type].name);
       main.append(node('p','Begonnen: '+timeLabel(s.startTime),'muted'));
       const e=currentExercise(s);
+      if (e) main.append(node('p','Pause: '+Math.floor(restFor(e.name)/60)+':'+String(restFor(e.name)%60).padStart(2,'0'),'muted'));
+      main.append(button('Pause starten',()=>{ startRest(s,e?.name); render(); }));
       if (e) { chosenExercise=e.id; main.append(exerciseCard(s,e)); }
       else main.append(node('p','Keine Übungen mehr offen.','notice'));
       if (lastFeedback) main.append(node('p',lastFeedback,'notice'));
@@ -422,6 +453,10 @@
     }
     function showHistory() {
       title('Verlauf');
+      const nutritionList=node('section',undefined,'card'); nutritionList.append(node('h3','Protein und Kreatin · letzte 14 Tage'));
+      const base=new Date(); base.setHours(12,0,0,0);
+      for (let i=0;i<14;i++) { const d=new Date(base); d.setDate(d.getDate()-i); const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); const entry=data.nutrition[key]; const total=entry?.protein.reduce((sum,x)=>sum+x.g,0); nutritionList.append(node('p',dateLabel(key)+': '+(entry?String(Math.round(total*10)/10).replace('.',',')+' g Protein · Kreatin '+(entry.creatine?'genommen':'offen'):'keine Angabe'),'muted')); }
+      main.append(nutritionList);
       const sessions=completed();
       if (!sessions.length) { main.append(node('p','Noch keine abgeschlossenen Trainings.')); return; }
       const names=[...new Set(sessions.flatMap(s=>s.exercises.map(e=>e.name)))].sort((a,b)=>a.localeCompare(b,'de'));
@@ -470,6 +505,16 @@
       const stepInput=field(card,'Schritt in kg',amount(step(names[0]))); stepInput.inputMode='decimal';
       pick.addEventListener('change',()=>{ stepInput.value=amount(step(pick.value)); });
       card.append(button('Schritt speichern',()=>{ const n=parseWeight(stepInput.value); if (n===null || n<=0) { say('Bitte einen positiven Gewichtsschritt eingeben.'); return; } data.settings.steps[pick.value]=n; save(); say('Gewichtsschritt gespeichert.'); }));
+      const restNames=[...new Set([...DEFAULTS.upper,...DEFAULTS.lower,...EXTRA,...data.settings.templates.upper.exercises,...data.settings.templates.lower.exercises,...data.sessions.flatMap(s=>s.exercises.map(e=>e.name))])].sort((a,b)=>a.localeCompare(b,'de'));
+      const restPick=select(card,'Pausenzeit für Übung',[['','Standardpause'],...restNames.map(n=>[n,n])],'');
+      const restInput=field(card,'Übungspause in Sekunden',String(data.settings.restSeconds),'number'); restInput.min=15; restInput.max=900;
+      restPick.addEventListener('change',()=>{ restInput.value=String(data.settings.exerciseRestSeconds[restPick.value] || data.settings.restSeconds); });
+      card.append(button('Übungspause speichern',()=>{ const n=Number(restInput.value); if (!Number.isInteger(n) || n<15 || n>900) { say('Bitte 15 bis 900 Sekunden eingeben.'); return; } if (restPick.value) data.settings.exerciseRestSeconds[restPick.value]=n; else data.settings.restSeconds=n; save(); say('Pause gespeichert.'); }));
+      const target=field(card,'Protein-Ziel pro Tag in g',String(data.settings.proteinTarget),'number');
+      const scoop=field(card,'Shake-Portion in g',String(data.settings.scoopGrams),'number');
+      const protein=field(card,'Protein pro Portion in g',String(data.settings.proteinPerScoop),'number');
+      const creatine=field(card,'Kreatin-Dosis in g',String(data.settings.creatineDose),'number');
+      card.append(button('Ernährungswerte speichern',()=>{ const vals=[target,scoop,protein,creatine].map(x=>Number(x.value)); if (vals.some(n=>!Number.isFinite(n)||n<=0||n>300) || vals[3]>100) { say('Bitte gültige positive Mengen eingeben.'); return; } [data.settings.proteinTarget,data.settings.scoopGrams,data.settings.proteinPerScoop,data.settings.creatineDose]=vals; save(); render(); say('Ernährungswerte gespeichert.'); }));
       main.append(card);
       for (const key of ['upper','lower']) {
         const t=data.settings.templates[key], box=node('section',undefined,'card'); box.append(node('h3','Vorlage · '+t.name));
