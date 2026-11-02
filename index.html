@@ -393,10 +393,10 @@
         item.append(node('p',d?.note ? 'Note: '+d.note : 'Note: —','meta')); main.append(item);
       }
     }
-    function downloadData() {
+    function downloadData(filename='start-first-'+dayKey()+'.json') {
       const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
       const url = URL.createObjectURL(blob), link = node('a');
-      link.href = url; link.download = 'start-first-'+dayKey()+'.json';
+      link.href = url; link.download = filename;
       document.body.append(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
     }
     const BACKUP_KEY = 'start-first-backup-time';
@@ -407,12 +407,12 @@
     async function backupData() {
       const name='start-first-backup-'+dayKey()+'.json';
       const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
-      const mark=()=>{ try { localStorage.setItem(BACKUP_KEY,String(Date.now())); } catch {} };
+      const mark=()=>{ try { localStorage.setItem(BACKUP_KEY,String(Date.now())); } catch {} document.querySelectorAll('.backup-status').forEach(x=>{ x.textContent=backupStatus(); }); };
       if (navigator.canShare && navigator.canShare({files:[file]}) && navigator.share) {
         try { await navigator.share({files:[file],title:name}); mark(); return; }
         catch (error) { if (error.name==='AbortError') return; }
       }
-      downloadData(); mark();
+      downloadData(name); mark();
     }
     function showSettings() {
       title('Keep it yours.');
@@ -433,7 +433,7 @@
       news.addEventListener('input',()=>news.setCustomValidity('')); areas.addEventListener('input',()=>areas.setCustomValidity(''));
       main.append(form);
       const backup = node('section',undefined,'card');
-      backup.append(node('h3','Your data'),node('p','Export a backup, or replace this device’s data with a Start First JSON export.','muted'),button('Export JSON',downloadData),button('In Drive sichern',backupData),node('p',backupStatus(),'muted'));
+      backup.append(node('h3','Your data'),node('p','Export a backup, or replace this device’s data with a Start First JSON export.','muted'),button('Export JSON',downloadData),button('In Drive sichern',backupData),node('p',backupStatus(),'muted backup-status'));
       const label = node('label','Import JSON'); label.htmlFor = 'import';
       const input = node('input'); input.id = 'import'; input.type = 'file'; input.accept = '.json,application/json';
       const preview = node('div'); backup.append(label,input,preview);

@@ -402,6 +402,7 @@
       });
       const card=node('section',undefined,'card'); const note=field(card,'Kurze Notiz (optional)',s.note,'textarea'); note.maxLength=1000;
       card.append(button('Speichern und zur Startseite',()=>{ s.note=note.value.trim(); save(); go('home'); },true)); main.append(card);
+      main.append(button('In Drive sichern',backupData));
     }
     function correction(s,e,set,i) {
       const box=node('details'); box.append(node('summary','Satz '+(i+1)+': '+statusWord(set.status)+' · '+setText(set,e.name,true)));
@@ -440,9 +441,24 @@
         }); main.append(card);
       });
     }
-    function download() {
+    function download(filename='gym-log-'+today()+'.json') {
       const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=node('a');
-      a.href=url; a.download='gym-log-'+today()+'.json'; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+      a.href=url; a.download=filename; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    const BACKUP_KEY='gym-backup-time';
+    function backupStatus() {
+      try { const saved=localStorage.getItem(BACKUP_KEY); return saved ? 'Letzte Sicherung: '+new Date(Number(saved)).toLocaleString('de-AT') : 'Noch keine Sicherung'; }
+      catch { return 'Noch keine Sicherung'; }
+    }
+    async function backupData() {
+      const name='gym-backup-'+today()+'.json';
+      const file=new File([JSON.stringify(data,null,2)],name,{type:'application/json'});
+      const mark=()=>{ try { localStorage.setItem(BACKUP_KEY,String(Date.now())); } catch {} document.querySelectorAll('.backup-status').forEach(x=>{ x.textContent=backupStatus(); }); };
+      if (navigator.canShare && navigator.canShare({files:[file]}) && navigator.share) {
+        try { await navigator.share({files:[file],title:name}); mark(); return; }
+        catch (error) { if (error.name==='AbortError') return; }
+      }
+      download(name); mark();
     }
     function showSettings() {
       title('Einstellungen');
@@ -469,7 +485,7 @@
         main.append(box);
         addExercise(main,n=>{ if (t.exercises.includes(n)) { say('Übung steht bereits in der Vorlage.'); return; } t.exercises.push(n); save(); render(); });
       }
-      const backup=node('section',undefined,'card'); backup.append(node('h3','Daten'),node('p','Alle Daten als JSON sichern oder eine Sicherung einschließlich unsicherer Sätze importieren.','muted'),button('JSON exportieren',download));
+      const backup=node('section',undefined,'card'); backup.append(node('h3','Daten'),node('p','Alle Daten als JSON sichern oder eine Sicherung einschließlich unsicherer Sätze importieren.','muted'),button('JSON exportieren',download),button('In Drive sichern',backupData),node('p',backupStatus(),'muted backup-status'));
       const label=node('label','JSON importieren'), file=node('input'); file.type='file'; file.accept='.json,application/json'; file.id='import-file'; label.htmlFor=file.id; backup.append(label,file);
       const preview=node('div'); backup.append(preview);
       file.addEventListener('change',async()=>{
