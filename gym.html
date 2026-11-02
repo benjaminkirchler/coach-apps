@@ -46,6 +46,38 @@
     .small { font-size:14px; }
     .uncertain { border-left:4px solid #a16a23; padding-left:10px; }
     [hidden] { display:none !important; }
+    .workout-bottom { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:min(100%,680px); background:var(--surface); border-top:1px solid var(--line); padding:10px 16px calc(10px + env(safe-area-inset-bottom)); z-index:3; }
+    .workout-bottom p { margin:0; font-size:14px; }
+    .workout-bottom progress { width:100%; height:10px; accent-color:var(--accent); }
+    .workout-bottom .rest-bar { position:static; transform:none; width:100%; padding:8px 0; box-shadow:none; margin-top:6px; }
+    .goal { grid-column:2 / -1; font-size:12px; color:var(--muted); }
+    .next-actions { display:grid; gap:10px; margin:16px 0; }
+    .workout-header { position:sticky; top:0; z-index:3; background:var(--bg); padding:12px 0; display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); margin-bottom:18px; }
+    .workout-header h2 { font-size:21px; margin:0; }
+    .workout-header p { margin:0; }
+    .rest-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:min(100%,680px); z-index:4; background:var(--surface); border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom)); display:flex; flex-wrap:wrap; align-items:center; gap:8px; box-shadow:0 -4px 20px #0001; }
+    .rest-bar .rest-description { flex:1; min-width:120px; }
+    .rest-bar p { margin:0; }
+    .rest-bar button { padding:8px 12px; }
+    .rest-bar .timer { font-size:26px; letter-spacing:0; }
+    body.training .shell { padding-bottom:270px; }
+    .set-grid { display:grid; grid-template-columns:22px minmax(42px,1.2fr) minmax(42px,1fr) minmax(42px,1fr) 44px; gap:5px; align-items:center; margin:8px 0; font-size:14px; }
+    .set-grid input { min-width:0; padding:10px 5px; text-align:center; }
+    .set-grid button { padding:8px; }
+    input[aria-invalid="true"] { border:2px solid #b74730; }
+    .set-adjuster { grid-column:1 / -1; padding:10px; background:var(--soft); border-radius:10px; }
+    .set-adjuster p { margin:0 0 8px; font-size:14px; }
+    .set-adjuster .row { flex-wrap:nowrap; gap:6px; }
+    .set-adjuster button { min-width:48px; }
+    .set-grid.is-done { background:var(--soft); border-radius:10px; }
+    .set-grid .previous { font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+    .exercise-card { padding:16px; scroll-margin-top:100px; }
+    .exercise-card h3 { margin-bottom:4px; }
+    details { margin-top:12px; }
+    summary { cursor:pointer; min-height:44px; padding:10px 0; }
+    .routine-actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .exercise-jump { display:flex; gap:8px; overflow:auto; padding-bottom:12px; margin-bottom:12px; }
+    .exercise-jump button { white-space:nowrap; font-size:14px; }
     footer { margin-top:30px; font-size:13px; color:var(--muted); }
     @media (max-width:360px) { .shell { padding:20px 14px; } .card { padding:18px; } }
   </style>
@@ -66,6 +98,7 @@
   <script>
     'use strict';
     const KEY = 'gym-log-v1';
+    let nutritionOpen=false;
     const SCHEMA = 2;
     const DEFAULTS = {
       upper:['Chest Press','Low Row','Vertical Traction','Shoulder Press','Reverse Fly','Pectoral einseitig','Back Extensions','Hammer Curls','Trizeps Pushdown'],
@@ -76,6 +109,7 @@
     const main = document.getElementById('main');
     const feedback = document.getElementById('feedback');
     let view = 'home', draft = null, chosenExercise = null, selectedSession = null, historyFilter = '';
+    const inputDrafts = new Map();
     let storageProblem = '', afterSet = null, lastFeedback = '', restAnnounced = false, importCandidate = null;
 
     function node(tag, value, className) {
@@ -102,7 +136,7 @@
       input.value = value; parent.append(caption,input); return input;
     }
     function say(message) { feedback.textContent = message; }
-    function go(next) { view = next; say(''); render(); main.querySelector('h2')?.focus(); }
+    function go(next) { if (next==='history' && view!=='home' && view!=='finish') selectedSession=null; view = next; say(''); render(); main.querySelector('h2')?.focus(); }
     function title(value) { const h=node('h2',value); h.tabIndex=-1; main.append(h); }
     function today() { const d=new Date(); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
     function dateLabel(key) { if (!key) return 'Datum unbekannt'; const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d,12).toLocaleDateString('de-AT',{day:'numeric',month:'long',year:'numeric'}); }
@@ -125,7 +159,7 @@
     function stamp(x) { return x===null || (Number.isSafeInteger(x) && x>0 && x<=8640000000000000); }
     function natural(x) { return x===null || (Number.isSafeInteger(x) && x>0 && x<=1000); }
     function weight(x) { return x===null || (typeof x==='number' && Number.isFinite(x) && x>=0 && x<=1000); }
-    function fresh() { return {schemaVersion:SCHEMA,settings:{restSeconds:90,exerciseRestSeconds:{},proteinTarget:140,scoopGrams:35,proteinPerScoop:26,creatineDose:5,templates:{upper:{name:'Oberkörper',exercises:[...DEFAULTS.upper]},lower:{name:'Unterkörper',exercises:[...DEFAULTS.lower]}},steps:{}},nutrition:{},sessions:[]}; }
+    function fresh() { return {schemaVersion:SCHEMA,settings:{restSeconds:90,betweenExerciseRestSeconds:180,exerciseRestSeconds:{},proteinTarget:140,scoopGrams:35,proteinPerScoop:26,creatineDose:5,templates:{upper:{name:'Oberkörper',exercises:[...DEFAULTS.upper]},lower:{name:'Unterkörper',exercises:[...DEFAULTS.lower]}},steps:{}},nutrition:{},sessions:[]}; }
     function migrateData(input) {
       if (!obj(input) || ![1,SCHEMA].includes(input.schemaVersion)) throw Error('Schema ungültig.');
       if (input.schemaVersion===SCHEMA) return input;
@@ -138,13 +172,17 @@
       if (s.status==='planned' || s.status==='skipped') { if (s.actualReps!==null || s.actualWeight!==null || s.rating!==null || s.timestamp!==null) throw Error('Offener Satz enthält Ist-Werte.'); }
       if (s.status==='completed' && (s.actualReps===null || s.source===null)) throw Error('Abgeschlossenem Satz fehlen Werte.');
       if (s.changes.some(c=>!obj(c) || !stamp(c.at) || c.at===null || !['completed','uncertain','skipped'].includes(c.status) || !natural(c.actualReps) || !weight(c.actualWeight) || ![null,'leicht','mittel','schwer'].includes(c.rating) || !stamp(c.timestamp) || ![null,'live','manual_correction','imported'].includes(c.source))) throw Error('Ungültiges Änderungsprotokoll.');
-      return {status:s.status,targetReps:s.targetReps,targetWeight:s.targetWeight,actualReps:s.actualReps,actualWeight:s.actualWeight,rating:s.rating,timestamp:s.timestamp,source:s.source,changes:s.changes.map(c=>({at:c.at,status:c.status,actualReps:c.actualReps,actualWeight:c.actualWeight,rating:c.rating,timestamp:c.timestamp,source:c.source}))};
+      if (!str(s.planSlotId ?? '',80)) throw Error('Planplatz ungültig.');
+      return {planSlotId:s.planSlotId ?? '',status:s.status,targetReps:s.targetReps,targetWeight:s.targetWeight,actualReps:s.actualReps,actualWeight:s.actualWeight,rating:s.rating,timestamp:s.timestamp,source:s.source,changes:s.changes.map(c=>({at:c.at,status:c.status,actualReps:c.actualReps,actualWeight:c.actualWeight,rating:c.rating,timestamp:c.timestamp,source:c.source}))};
     }
     function validateData(input) {
       input=migrateData(input);
       if (!obj(input) || input.schemaVersion!==SCHEMA || !obj(input.settings) || !Array.isArray(input.sessions) || input.sessions.length>10000) throw Error('Schema oder Sitzungen ungültig.');
       const s=input.settings, t=s.templates;
       if (!Number.isInteger(s.restSeconds) || s.restSeconds<15 || s.restSeconds>900 || !obj(t) || !obj(s.steps) || !obj(s.exerciseRestSeconds) || !Number.isFinite(s.proteinTarget) || s.proteinTarget<=0 || s.proteinTarget>300 || !Number.isFinite(s.scoopGrams) || s.scoopGrams<=0 || s.scoopGrams>300 || !Number.isFinite(s.proteinPerScoop) || s.proteinPerScoop<=0 || s.proteinPerScoop>300 || !Number.isFinite(s.creatineDose) || s.creatineDose<=0 || s.creatineDose>100) throw Error('Einstellungen ungültig.');
+      const xpRules=validateXpRules(s.xpRules ?? null);
+      const between=s.betweenExerciseRestSeconds ?? 180;
+      if (!Number.isInteger(between) || between<15 || between>900) throw Error('Pause zwischen Übungen ungültig.');
       for (const [name,n] of Object.entries(s.exerciseRestSeconds)) if (!name || name.length>80 || !Number.isInteger(n) || n<15 || n>900) throw Error('Übungspause ungültig.');
       if (!obj(input.nutrition)) throw Error('Ernährung ungültig.');
       const nutrition={};
@@ -162,21 +200,33 @@
       for (const [name,n] of Object.entries(s.steps)) { if (!name || name.length>80 || typeof n!=='number' || !Number.isFinite(n) || n<=0 || n>100) throw Error('Gewichtsschritt ungültig.'); steps[name]=n; }
       const seen=new Set(), sessions=[]; let active=0;
       for (const session of input.sessions) {
-        if (!obj(session) || !str(session.id,80) || !session.id || seen.has(session.id) || !dateValid(session.date) || !['upper','lower'].includes(session.type) || !['active','completed'].includes(session.status) || !stamp(session.startTime) || !stamp(session.endTime) || !stamp(session.restEnd ?? null) || !str(session.note,1000) || !Array.isArray(session.exercises) || session.exercises.length>100) throw Error('Sitzung ungültig.');
+        if (!obj(session) || !str(session.id,80) || !session.id || seen.has(session.id) || !dateValid(session.date) || !['upper','lower'].includes(session.type) || !['active','completed'].includes(session.status) || !stamp(session.startTime) || !stamp(session.endTime) || !stamp(session.restEnd ?? null) || !str(session.currentExerciseId ?? '',80) || !str(session.restExercise ?? '',80) || !['set','exercise'].includes(session.restKind ?? 'set') || !str(session.note,1000) || !Array.isArray(session.exercises) || session.exercises.length>100) throw Error('Sitzung ungültig.');
         seen.add(session.id);
         if (session.status==='active') { active++; if (session.startTime===null || session.endTime!==null) throw Error('Aktive Sitzung ungültig.'); }
         if (session.status==='completed' && session.restEnd) throw Error('Pause in abgeschlossener Sitzung.');
         if (session.startTime!==null && session.endTime!==null && session.endTime<session.startTime) throw Error('Zeitfolge ungültig.');
         const exerciseIds=new Set();
         const exercises=session.exercises.map(e=>{
-          if (!obj(e) || !str(e.id,80) || !e.id || exerciseIds.has(e.id) || !str(e.name,80) || !e.name.trim() || !str(e.note,500) || !Array.isArray(e.sets) || e.sets.length>50) throw Error('Übung ungültig.');
+          if (!obj(e) || (e.deferred!==undefined && typeof e.deferred!=='boolean') || !str(e.id,80) || !e.id || exerciseIds.has(e.id) || !str(e.name,80) || !e.name.trim() || !str(e.note,500) || !Array.isArray(e.sets) || e.sets.length>50) throw Error('Übung ungültig.');
           exerciseIds.add(e.id);
-          return {id:e.id,name:e.name,note:e.note,sets:e.sets.map(validSet)};
+          return {id:e.id,name:e.name,note:e.note,deferred:e.deferred ?? false,sets:e.sets.map(validSet)};
         });
-        sessions.push({id:session.id,date:session.date,type:session.type,status:session.status,startTime:session.startTime,endTime:session.endTime,restEnd:session.restEnd ?? null,note:session.note,exercises});
+        let planSlots=null;
+        if (session.planSlots!=null) {
+          if (!Array.isArray(session.planSlots) || session.planSlots.length>5000) throw Error('Trainingsplan ungültig.');
+          const slotIds=new Set();
+          planSlots=session.planSlots.map(slot=>{
+            if (!obj(slot) || !str(slot.id,80) || !slot.id || slotIds.has(slot.id) || !str(slot.exerciseName,80) || !Number.isInteger(slot.setIndex) || slot.setIndex<0 || slot.setIndex>=50 || !natural(slot.targetReps) || !weight(slot.targetWeight)) throw Error('Planplatz ungültig.');
+            slotIds.add(slot.id); return {id:slot.id,exerciseName:slot.exerciseName,setIndex:slot.setIndex,targetReps:slot.targetReps,targetWeight:slot.targetWeight};
+          });
+          const bound=new Set();
+          exercises.forEach(e=>e.sets.forEach(set=>{ if(set.planSlotId) { if(!slotIds.has(set.planSlotId) || bound.has(set.planSlotId)) throw Error('Doppelter oder unbekannter Planplatz.'); bound.add(set.planSlotId); } }));
+        }
+        const sessionRules=validateXpRules(session.xpRules ?? null);
+        sessions.push({planSlots,xpRules:sessionRules,id:session.id,date:session.date,type:session.type,status:session.status,startTime:session.startTime,endTime:session.endTime,restEnd:session.restEnd ?? null,restExercise:session.restExercise ?? '',restKind:session.restKind ?? 'set',currentExerciseId:session.currentExerciseId ?? '',note:session.note,exercises});
       }
       if (active>1) throw Error('Mehrere aktive Sitzungen.');
-      return {schemaVersion:SCHEMA,settings:{restSeconds:s.restSeconds,exerciseRestSeconds:{...s.exerciseRestSeconds},proteinTarget:s.proteinTarget,scoopGrams:s.scoopGrams,proteinPerScoop:s.proteinPerScoop,creatineDose:s.creatineDose,templates,steps},nutrition,sessions};
+      return {schemaVersion:SCHEMA,settings:{xpRules,restSeconds:s.restSeconds,betweenExerciseRestSeconds:between,exerciseRestSeconds:{...s.exerciseRestSeconds},proteinTarget:s.proteinTarget,scoopGrams:s.scoopGrams,proteinPerScoop:s.proteinPerScoop,creatineDose:s.creatineDose,templates,steps},nutrition,sessions};
     }
     function warning(message) { storageProblem=message; const e=document.getElementById('storage-message'); e.textContent=message; e.hidden=false; }
     function read() {
@@ -202,13 +252,12 @@
     function targets(name) {
       const old=previous(name), defaultReps=[12,10,8], count=Math.max(3,old?.exercise.sets.length || 0);
       return Array.from({length:count},(_,i)=>{
-        const last=old?.exercise.sets[i], r=last?.targetReps ?? defaultReps[i] ?? 8;
+        const last=old?.exercise.sets[i], plan=last?.targetReps ?? defaultReps[i] ?? 8, r=last?.status==='completed' ? Math.max(last.actualReps,plan) : plan;
         if (bodyweight(name)) return emptySet(r,null);
         if (!last) return emptySet(r,null);
         const w=last.actualWeight;
         if (w===null) return emptySet(r,null);
-        const increase=last.status==='completed' && last.targetReps!==null && last.actualReps!==null && last.actualReps>=last.targetReps && last.rating!=='schwer';
-        return emptySet(r,increase ? Math.round((w+step(name))*100)/100 : w);
+        return emptySet(r,w);
       });
     }
     function exercise(name) { return {id:uid(),name,note:previous(name)?.exercise.note || '',sets:targets(name)}; }
@@ -217,19 +266,22 @@
     function statusWord(s) { return ({planned:'geplant',completed:'geschafft',skipped:'übersprungen',uncertain:'unsicher'})[s]; }
     function setText(s,name,actual=false) { const r=actual?s.actualReps:s.targetReps,w=actual?s.actualWeight:s.targetWeight; return reps(r)+(bodyweight(name)?' Wdh.':' × '+kg(w)); }
     function move(list,index,delta) { const j=index+delta; if (j<0 || j>=list.length) return; [list[index],list[j]]=[list[j],list[index]]; }
-    function addExercise(parent,add) {
+    function addExercise(parent,add,heading='Übung hinzufügen') {
       const names=[...new Set([...DEFAULTS.upper,...DEFAULTS.lower,...EXTRA,...data.settings.templates.upper.exercises,...data.settings.templates.lower.exercises,...data.sessions.flatMap(s=>s.exercises.map(e=>e.name))])].sort((a,b)=>a.localeCompare(b,'de'));
-      const box=node('div',undefined,'card'); box.append(node('h3','Übung hinzufügen'));
-      const pick=select(box,'Bekannte Übung', [['','Bitte wählen'],...names.map(n=>[n,n])], '');
-      const custom=field(box,'Oder neuer Name'); custom.maxLength=80;
+      const box=node('div',undefined,'card'); box.append(node('h3',heading));
+      const custom=field(box,'Übung suchen oder neu anlegen'); custom.maxLength=80;
+      const list=node('datalist'); list.id='exercises-'+uid(); custom.setAttribute('list',list.id);
+      names.forEach(name=>{ const option=node('option'); option.value=name; list.append(option); }); box.append(list);
       box.append(button('Hinzufügen',()=>{
-        const name=(custom.value.trim() || pick.value);
+        const name=custom.value.trim();
         if (!name) { say('Bitte eine Übung wählen oder einen Namen eingeben.'); return; }
         add(name);
       })); parent.append(box);
     }
     function showHome() {
       title('Heute trainieren');
+      const xpSessions=completed().filter(s=>s.xpRules);
+      if (xpSessions.length) main.append(node('p',xpSessions.reduce((sum,s)=>sum+scoreWorkout(s).total,0)+' XP gesammelt · '+xpSessions.length+' Trainings','notice'));
       const todayNutrition=data.nutrition[today()];
       const totalProtein=todayNutrition?.protein.reduce((sum,x)=>sum+x.g,0) || 0;
       const nutritionCard=node('section',undefined,'card'); nutritionCard.append(node('h3','Heute'),node('p','Protein: '+String(Math.round(totalProtein*10)/10).replace('.',',')+' von '+String(data.settings.proteinTarget).replace('.',',')+' g'));
@@ -238,19 +290,21 @@
       nutritionCard.append(button('Rückgängig',()=>{ const entry=data.nutrition[today()]; if (!entry?.protein.length) { say('Heute gibt es keinen Protein-Eintrag zum Entfernen.'); return; } entry.protein.pop(); save(); render(); }));
       nutritionCard.append(node('p','Kreatin: '+(todayNutrition?.creatine?'genommen':'offen')));
       nutritionCard.append(button(todayNutrition?.creatine?'Kreatin zurücksetzen':'Kreatin genommen',()=>{ const entry=data.nutrition[today()] || (data.nutrition[today()]={protein:[],creatine:false}); entry.creatine=!entry.creatine; save(); render(); }));
-      main.append(nutritionCard);
+      const nutrition=node('details'); nutrition.open=nutritionOpen; nutrition.addEventListener('toggle',()=>{ nutritionOpen=nutrition.open; }); nutrition.append(node('summary','Protein & Kreatin · heute'),nutritionCard);
       const session=active();
       if (session) {
         const card=node('section',undefined,'card');
         card.append(node('h3','Training fortsetzen'),node('p',data.settings.templates[session.type].name+' · begonnen '+timeLabel(session.startTime)));
         card.append(button('Training fortsetzen',()=>go('workout'),true)); main.append(card);
       } else {
-        const type=suggestedType();
-        const card=node('section',undefined,'card');
-        card.append(node('p','Vorschlag: '+data.settings.templates[type].name,'eyebrow'));
-        card.append(button('Heute trainieren',()=>{ draft=newDraft(type); go('plan'); },true));
-        card.append(button('Stattdessen '+data.settings.templates[type==='upper'?'lower':'upper'].name,()=>{ draft=newDraft(type==='upper'?'lower':'upper'); go('plan'); }));
-        main.append(card);
+        const suggested=suggestedType();
+        for (const type of [suggested,suggested==='upper'?'lower':'upper']) {
+          const t=data.settings.templates[type], card=node('section',undefined,'card');
+          card.append(node('p',type===suggested?'Als Nächstes':'Weitere Routine','eyebrow'),node('h3',t.name),node('p',t.exercises.length+' Übungen','muted'));
+          const actions=node('div',undefined,'routine-actions');
+          actions.append(button('Training starten',()=>startWorkout(newDraft(type)),true),button('Plan anpassen',()=>{ draft=newDraft(type); go('plan'); }));
+          card.append(actions); main.append(card);
+        }
       }
       const last=completed()[0];
       const card=node('section',undefined,'card'); card.append(node('h3','Letztes Training'));
@@ -258,9 +312,9 @@
       else {
         const count=last.exercises.reduce((n,e)=>n+e.sets.filter(s=>s.status==='completed').length,0);
         card.append(node('p',dateLabel(last.date)+' · '+data.settings.templates[last.type].name),node('p',last.exercises.length+' Übungen · '+count+' geschaffte Sätze'));
-        card.append(button('Im Verlauf ansehen',()=>{ selectedSession=last.id; go('history'); }));
+        card.append(button('Im Verlauf ansehen',()=>{ selectedSession=last.id; historyFilter=''; go('history'); }));
       }
-      main.append(card);
+      main.append(card,nutrition);
     }
     function addProtein(g) { const entry=data.nutrition[today()] || (data.nutrition[today()]={protein:[],creatine:false}); entry.protein.push({g,time:Date.now()}); save(); render(); }
     function planExercise(e,index) {
@@ -288,18 +342,19 @@
       if (!draft) draft=newDraft(suggestedType());
       title('Plan · '+data.settings.templates[draft.type].name);
       main.append(node('p','Zielwerte sind Vorschläge. Jeder Satz wird erst nach einem Tippen als geschafft gespeichert.','muted'));
+      main.append(button('Training starten',()=>startWorkout(draft),true));
       draft.exercises.forEach((e,i)=>main.append(planExercise(e,i)));
       addExercise(main,name=>{ draft.exercises.push(exercise(name)); render(); });
-      main.append(button('Training starten',()=>{
-        if (active()) { go('workout'); return; }
-        if (!draft.exercises.length) { say('Bitte mindestens eine Übung hinzufügen.'); return; }
-        const started=Date.now();
-        const s={id:uid(),date:today(),type:draft.type,status:'active',startTime:started,endTime:null,restEnd:null,note:'',exercises:draft.exercises};
-        data.sessions.push(s); draft=null; chosenExercise=null; save(); go('workout');
-      },true));
+    }
+    function startWorkout(plan) {
+      if (active()) { go('workout'); return; }
+      if (!plan.exercises.length) { say('Bitte mindestens eine Übung hinzufügen.'); return; }
+      data.sessions.push({id:uid(),date:today(),type:plan.type,status:'active',startTime:Date.now(),endTime:null,restEnd:null,note:'',exercises:plan.exercises});
+      ensurePlan(active(),true);
+      draft=null; chosenExercise=null; inputDrafts.clear(); save(); go('workout');
     }
     function pending(e) { return e.sets.findIndex(s=>s.status==='planned'); }
-    function currentExercise(s) { return s.exercises.find(e=>e.id===chosenExercise && pending(e)>=0) || s.exercises.find(e=>pending(e)>=0) || s.exercises[0]; }
+    function currentExercise(s) { return s.exercises.find(e=>e.id===(s.currentExerciseId || chosenExercise)) || s.exercises.find(e=>pending(e)>=0 && !e.deferred) || s.exercises.find(e=>pending(e)>=0) || s.exercises[0]; }
     function compare(now,old) {
       if (!old || old.status!=='completed' || now.actualReps===null || old.actualReps===null) return 'Kein sicherer Vergleich mit dem letzten Mal.';
       if (now.actualWeight===old.actualWeight) return now.actualReps>old.actualReps ? 'Mehr Wiederholungen als letztes Mal.' : now.actualReps<old.actualReps ? 'Weniger Wiederholungen als letztes Mal.' : 'Gleich viele Wiederholungen wie letztes Mal.';
@@ -310,108 +365,309 @@
       const n=e.sets.slice(index+1).find(s=>s.status==='planned');
       return n ? (bodyweight(e.name) ? reps(n.targetReps)+' Wdh.' : kg(n.targetWeight)) : 'kein weiterer Satz';
     }
-    function startRest(s,name=currentExercise(s)?.name) { const seconds=restFor(name || ''); s.restEnd=Date.now()+seconds*1000; restAnnounced=false; save(); }
-    function logSet(s,e,index,actualReps,actualWeight) {
-      const set=e.sets[index]; if (!set || set.status!=='planned') return;
-      set.status='completed'; set.actualReps=actualReps; set.actualWeight=actualWeight; set.timestamp=Date.now(); set.source='live';
-      const old=previous(e.name,s.id)?.exercise.sets[index];
-      lastFeedback=compare(set,old)+' Nächster Satz: '+nextWeight(e,index)+'.';
-      afterSet={exerciseId:e.id,index};
-      startRest(s,e.name); render();
+    function startRest(s,name=currentExercise(s)?.name,kind='set') {
+      s.restExercise=name || ''; s.restKind=kind;
+      const seconds=kind==='exercise' ? data.settings.betweenExerciseRestSeconds : restFor(s.restExercise);
+      s.restEnd=Date.now()+seconds*1000; restAnnounced=false; save(); updateRestBar(s);
+    }
+    function snapshot(set) {
+      set.changes.push({at:Date.now(),status:set.status,actualReps:set.actualReps,actualWeight:set.actualWeight,rating:set.rating,timestamp:set.timestamp,source:set.source});
+      if (set.changes.length>100) set.changes.shift();
+    }
+    function logSet(s,e,index,r,w) {
+      const set=e.sets[index];
+      if (set.status==='completed' || set.status==='uncertain') snapshot(set);
+      set.status='completed'; set.actualReps=r; set.actualWeight=w; set.timestamp=set.timestamp || Date.now(); set.source=set.changes.length?'manual_correction':'live';
+      const exerciseDone=e.sets.every(x=>x.status==='completed' || x.status==='skipped');
+      if (exerciseDone && !s.exercises.some(x=>x!==e && pending(x)>=0)) {
+        s.restEnd=null; save(); updateRestBar(s);
+      } else startRest(s,e.name,exerciseDone?'exercise':'set');
+    }
+    function restLabel(s) { return (s.restKind==='exercise'?'Übungswechsel':'Satzpause')+(s.restExercise?' · '+s.restExercise:''); }
+    function updateRestBar(s) {
+      let bar=document.getElementById('rest-bar');
+      if (!s.restEnd || view!=='workout') { bar?.remove(); return; }
+      if (!bar) { restCard(s); return; }
+      document.getElementById('rest-label').textContent=restLabel(s);
+      tick();
     }
     function restCard(s) {
       if (!s.restEnd) return;
-      const card=node('section',undefined,'card');
-      const e=currentExercise(s); const seconds=restFor(e?.name || '');
-      card.append(node('p','Pause: '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'),'muted'));
-      const left=Math.max(0,Math.ceil((s.restEnd-Date.now())/1000));
-      card.append(node('h3',left?'Pause':'Pause vorbei'));
-      const timer=node('p',String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0'),'timer'); timer.id='rest-timer'; timer.setAttribute('role','timer'); card.append(timer);
-      if (!left) card.append(node('p','Bereit für den nächsten Satz.','notice'));
-      const row=node('div',undefined,'row');
-      row.append(button('−15 s',()=>{ const n=Math.max(15,seconds-15); if(e) data.settings.exerciseRestSeconds[e.name]=n; s.restEnd=Math.max(Date.now(),s.restEnd-15000); save(); render(); }),button('+15 s',()=>{ const n=Math.min(900,seconds+15); if(e) data.settings.exerciseRestSeconds[e.name]=n; s.restEnd=Math.max(Date.now(),s.restEnd)+15000; save(); render(); }),button('Überspringen',()=>{ s.restEnd=null; save(); render(); }));
-      card.append(row); main.append(card);
-    }
-    function ratingCard(s) {
-      if (!afterSet) return;
-      const e=s.exercises.find(x=>x.id===afterSet.exerciseId), set=e?.sets[afterSet.index];
-      if (!set || set.status!=='completed') { afterSet=null; return; }
-      const card=node('section',undefined,'card'); card.append(node('p','Wie schwer war der Satz?','muted'));
-      const row=node('div',undefined,'row');
-      for (const value of ['leicht','mittel','schwer']) row.append(button(value,()=>{ set.rating=value; save(); afterSet=null; render(); }));
-      card.append(row,button('Ohne Bewertung weiter',()=>{ afterSet=null; render(); })); main.append(card);
+      document.getElementById('rest-bar')?.remove();
+      const bar=node('section',undefined,'rest-bar'); bar.id='rest-bar'; bar.setAttribute('aria-label','Trainingspause');
+      const description=node('div',undefined,'rest-description');
+      const label=node('p',restLabel(s),'small muted'); label.id='rest-label';
+      const timer=node('p','','timer'); timer.id='rest-timer'; timer.setAttribute('role','timer');
+      description.append(label,timer); bar.append(description);
+      for (const [text,delta] of [['−15 s',-15000],['+15 s',15000]]) bar.append(button(text,()=>{ s.restEnd=Math.max(Date.now(),s.restEnd)+delta; s.restEnd=Math.max(Date.now(),s.restEnd); restAnnounced=false; save(); tick(); }));
+      bar.append(button('Beenden',()=>{ s.restEnd=null; save(); bar.remove(); }));
+      (document.getElementById('workout-bottom') || document.body).append(bar); tick();
     }
     function exerciseCard(s,e) {
-      const card=node('section',undefined,'card'); card.append(node('h3',e.name));
+      const card=node('section',undefined,'card exercise-card'); card.id='exercise-'+e.id;
+      card.append(node('h3',e.name),node('p','Pause '+restFor(e.name)+' s','small muted'));
       const old=previous(e.name,s.id);
-      card.append(node('p','Letztes Mal: '+(old ? old.exercise.sets.map((x,i)=>'Satz '+(i+1)+' '+(x.status==='uncertain'?'unsicher ':'')+setText(x,e.name,true)).join(' · ') : 'kein Eintrag'),'muted'));
-      const note=field(card,'Gerät / Sitzposition (optional)',e.note); note.maxLength=500;
-      note.addEventListener('change',()=>{ e.note=note.value.trim(); save(); });
-      const index=pending(e);
-      if (index>=0) {
-        const set=e.sets[index];
-        const uncertain=old?.exercise.sets[index]?.status==='uncertain' ? ' · letzter Wert unsicher' : '';
-        card.append(node('p','Jetzt · Satz '+(index+1)+' · Ziel '+setText(set,e.name)+uncertain,'notice'));
-        const done=button('Geschafft',()=>{
-          if (set.targetReps===null || (!bodyweight(e.name) && set.targetWeight===null)) { say('Für „Geschafft“ fehlen Zielwerte. Bitte „Anders“ verwenden.'); return; }
-          logSet(s,e,index,set.targetReps,set.targetWeight);
-        },true);
-        done.className+=' wide'; card.append(done);
-        const details=node('details'), summary=node('summary','Anders'); summary.className='button'; details.append(summary);
-        const actual=field(details,'Freitext, z. B. 12x55,5'); actual.placeholder='12 x 55,5';
-        const r=field(details,'Tatsächliche Wiederholungen',amount(set.targetReps)); r.inputMode='numeric';
-        const w=bodyweight(e.name)?null:field(details,'Tatsächliches Gewicht in kg',amount(set.targetWeight)); if (w) w.inputMode='decimal';
-        details.append(button('Satz speichern',()=>{
-          const parsed=actual.value.trim() ? parseSetText(actual.value,bodyweight(e.name)) : null;
-          if (actual.value.trim() && !parsed) { say('Freitext ungültig. Beispiel: 12x55,5.'); return; }
-          const nr=parsed?.reps ?? parseReps(r.value), nw=bodyweight(e.name)?null:(parsed?.weight ?? parseWeight(w.value));
-          if (nr===null || (!bodyweight(e.name) && nw===null)) { say('Bitte gültige Wiederholungen und kg eingeben.'); return; }
-          say(''); logSet(s,e,index,nr,nw);
-        },true)); card.append(details);
-      } else card.append(node('p','Alle Sätze dieser Übung bearbeitet.','muted'));
-      const controls=node('div',undefined,'row');
-      controls.append(button('Satz hinzufügen',()=>{ const last=e.sets.at(-1); e.sets.push(emptySet(last?.targetReps ?? 12,last?.targetWeight ?? null)); save(); render(); }));
-      controls.append(button('Letzten Satz entfernen',()=>{ if (e.sets.at(-1)?.status!=='planned') { say('Nur ein offener letzter Satz kann entfernt werden.'); return; } e.sets.pop(); save(); render(); }));
-      controls.append(button('Übung überspringen',()=>{ e.sets.forEach(x=>{ if (x.status==='planned') x.status='skipped'; }); save(); render(); }));
-      card.append(controls);
-      const swap=node('details'); swap.append(node('summary','Gerät oder Übung tauschen'));
-      const replacement=field(swap,'Neuer Übungsname'); replacement.maxLength=80;
-      swap.append(button('Tauschen',()=>{
-        const name=replacement.value.trim(); if (!name) { say('Bitte einen neuen Übungsnamen eingeben.'); return; }
+      if (e.note) card.append(node('p',e.note,'small muted'));
+      const headings=node('div',undefined,'set-grid muted');
+      for (const text of ['Satz','Letztes Mal','kg','Wdh.','✓']) headings.append(node('span',text));
+      card.append(headings);
+      const paintRow=(set,i,row)=>{
+        row.replaceChildren(); row.className='set-grid'+(set.status==='completed'?' is-done':'');
+        const prev=old?.exercise.sets[i];
+        row.append(node('span',String(i+1)),node('span',prev ? (prev.status==='uncertain'?'Unsicher: ':'')+setText(prev,e.name,true) : '–','previous'));
+        const key=e.id+':'+i, cached=inputDrafts.get(key);
+        const w=node('input'), r=node('input');
+        w.value=cached?.w ?? (amount(set.status==='completed'||set.status==='uncertain'?set.actualWeight:set.targetWeight).replace('–',''));
+        r.value=cached?.r ?? (amount(set.status==='completed'||set.status==='uncertain'?set.actualReps:set.targetReps).replace('–',''));
+        w.inputMode='decimal'; r.inputMode='numeric';
+        w.setAttribute('aria-label',e.name+' Satz '+(i+1)+' kg'); r.setAttribute('aria-label',e.name+' Satz '+(i+1)+' Wiederholungen');
+        w.placeholder='kg'; r.placeholder='Wdh.';
+        if (bodyweight(e.name)) { w.hidden=true; row.append(node('span','BW','muted')); } else row.append(w);
+        row.append(r);
+        const readValues=()=>({r:parseReps(r.value),w:bodyweight(e.name)?null:parseWeight(w.value)});
+        const valid=v=>v.r!==null && (bodyweight(e.name)||v.w!==null);
+        const remember=()=>{ inputDrafts.set(key,{w:w.value,r:r.value}); };
+        const commit=()=>{
+          const v=readValues();
+          r.setAttribute('aria-invalid',String(v.r===null));
+          w.setAttribute('aria-invalid',String(!bodyweight(e.name) && v.w===null));
+          if (!valid(v)) { say('Bitte gültige Wiederholungen und kg eingeben.'); return; }
+          say('');
+          if (set.status==='completed' && valid(v) && (v.r!==set.actualReps || v.w!==set.actualWeight)) {
+            snapshot(set); set.actualReps=v.r; set.actualWeight=v.w; set.source='manual_correction'; save(); updateProgress(s);
+          }
+        };
+        for (const input of [w,r]) { input.addEventListener('input',remember); input.addEventListener('change',commit); }
+        const toggle=button(set.status==='completed'?'✓':'○',()=>{
+          if (set.status==='completed') {
+            // A double tap on a just-logged set must not undo it.
+            if (Date.now()-(set.timestamp||0)<1200) return;
+            snapshot(set);
+            set.status='planned'; set.actualReps=null; set.actualWeight=null; set.rating=null; set.timestamp=null; set.source=null;
+            if (s.restEnd && s.restExercise===e.name) { s.restEnd=null; updateRestBar(s); }
+            save(); say('Satz wieder offen.');
+          } else {
+            const v=readValues(); if (!valid(v)) { say('Bitte gültige Wiederholungen und kg eingeben.'); (v.r===null?r:w).focus(); return; }
+            logSet(s,e,i,v.r,v.w); say('Satz '+(i+1)+' gespeichert.');
+          }
+          if (set.status==='planned') remember(); else inputDrafts.delete(key); paintRow(set,i,row); row.querySelector('button').focus(); updateProgress(s);
+        },set.status==='completed');
+        toggle.setAttribute('aria-label',e.name+' Satz '+(i+1)+(set.status==='completed'?' rückgängig':' abschließen'));
+        toggle.setAttribute('aria-pressed',String(set.status==='completed')); row.append(toggle);
+        row.append(node('span','Ziel: '+setText(set,e.name), 'goal'));
+        if (set.status==='skipped') row.querySelector('.previous').textContent+=' · übersprungen';
+        const adjust=node('div',undefined,'set-adjuster'); adjust.hidden=true;
+        const caption=node('p'), actions=node('div',undefined,'row');
+        let editing=r;
+        const refresh=()=>{ caption.textContent=(editing===r?'Wiederholungen':'Gewicht')+': '+editing.value+(editing===w?' kg':''); };
+        for (const [text,direction] of [['−',-1],['+',1]]) {
+          const control=button(text,()=>{
+            const isReps=editing===r, increment=isReps?1:step(e.name);
+            const parsed=isReps?parseReps(editing.value):parseWeight(editing.value);
+            const value=Math.max(isReps?1:0,Math.min(1000,Math.round(((parsed ?? 0)+direction*increment)*100)/100));
+            editing.value=amount(value); remember(); commit(); refresh();
+          });
+          control.setAttribute('aria-label',direction<0?'Wert verringern':'Wert erhöhen');
+          control.addEventListener('pointerdown',event=>event.preventDefault()); actions.append(control);
+        }
+        actions.append(button(set.status==='completed'?'Fertig':'Satz bestätigen',()=>{
+          if (set.status==='completed') { commit(); if (!valid(readValues())) return; adjust.hidden=true; r.blur(); w.blur(); }
+          else toggle.click();
+        }));
+        adjust.append(caption,actions); row.append(adjust);
+        for (const input of [w,r]) {
+          input.addEventListener('focus',()=>{
+            document.querySelectorAll('.set-adjuster').forEach(el=>{ el.hidden=true; });
+            editing=input; adjust.hidden=false; refresh();
+          });
+          input.addEventListener('input',refresh);
+          input.addEventListener('keydown',event=>{ if (event.key==='Enter') { event.preventDefault(); actions.children[2].click(); } });
+        }
+
+      };
+      e.sets.forEach((set,i)=>{ const row=node('div'); paintRow(set,i,row); card.append(row); });
+      card.append(button('+ Satz',()=>{ const last=e.sets.at(-1); e.sets.push(emptySet(last?.actualReps ?? last?.targetReps ?? 12,last?.actualWeight ?? last?.targetWeight ?? null)); save(); render(); }));
+      const menu=node('details'); menu.append(node('summary','Notiz & Übungsoptionen'));
+      const note=field(menu,'Gerät / Sitzposition',e.note); note.maxLength=500;
+      note.addEventListener('input',()=>{ e.note=note.value; save(); });
+      const controls=node('div',undefined,'stack');
+      controls.append(button('Pause starten',()=>startRest(s,e.name)),button('Letzten offenen Satz entfernen',()=>{ if (e.sets.at(-1)?.status!=='planned') { say('Nur ein offener letzter Satz kann entfernt werden.'); return; } inputDrafts.delete(e.id+':'+(e.sets.length-1)); e.sets.pop(); save(); render(); }));
+      const increases=e.sets.map((set,i)=>{
+        const prev=old?.exercise.sets[i];
+        return set.status==='planned' && !bodyweight(e.name) && prev?.status==='completed' && prev.actualWeight!==null && prev.targetReps!==null && prev.actualReps>=prev.targetReps && prev.rating!=='schwer';
+      });
+      if (increases.some(Boolean)) {
+        menu.append(node('p','Letztes Mal Zielwiederholungen erreicht. Optional: Gewicht für diese Sätze um '+kg(step(e.name))+' erhöhen.','small muted'));
+        menu.append(button('Gewichtsvorschlag übernehmen',()=>{
+          e.sets.forEach((set,i)=>{ if (increases[i] && set.status==='planned') {
+            const key=e.id+':'+i, cached=inputDrafts.get(key);
+            const w=Math.min(1000,Math.round((old.exercise.sets[i].actualWeight+step(e.name))*100)/100);
+            set.targetWeight=w; inputDrafts.set(key,{w:amount(w),r:cached?.r ?? amount(set.targetReps)});
+          }}); save(); render();
+        }));
+      }
+      const index=s.exercises.indexOf(e);
+      controls.append(button('Nach oben',()=>{ move(s.exercises,index,-1); save(); render(); }),button('Nach unten',()=>{ move(s.exercises,index,1); save(); render(); }));
+      menu.append(controls);
+      addExercise(menu,name=>{
         const open=e.sets.filter(x=>x.status==='planned');
         if (!open.length) { say('Keine offenen Sätze zum Tauschen.'); return; }
+        e.sets.forEach((_,i)=>inputDrafts.delete(e.id+':'+i));
         e.sets=e.sets.filter(x=>x.status!=='planned');
-        const suggested=targets(name);
-        const freshExercise={id:uid(),name,note:previous(name)?.exercise.note || '',sets:open.map((_,i)=>suggested[i] || emptySet(8,null))};
-        s.exercises.splice(s.exercises.indexOf(e)+1,0,freshExercise); chosenExercise=freshExercise.id; save(); render();
-      })); card.append(swap); return card;
+        const replacement=exercise(name); replacement.sets=Array.from({length:open.length},(_,i)=>({...replacement.sets[i] || emptySet(8,null),planSlotId:open[i].planSlotId || ''}));
+        s.exercises.splice(index+1,0,replacement); chosenExercise=replacement.id; s.currentExerciseId=replacement.id; save(); render();
+      },'Gerät / Übung tauschen');
+      const effort=node('details'); effort.append(node('summary','Satzbewertung (optional)'));
+      e.sets.forEach((set,i)=>{
+        const rating=select(effort,'Satz '+(i+1),[['','Ohne Bewertung'],['leicht','Leicht'],['mittel','Mittel'],['schwer','Schwer']],set.rating || '');
+        rating.addEventListener('change',()=>{ if (set.status!=='completed') { rating.value=''; say('Bitte den Satz zuerst abschließen.'); return; } snapshot(set); set.rating=rating.value || null; save(); });
+      });
+      menu.append(effort);
+      card.append(menu); return card;
+    }
+    function validateXpRules(rules) {
+      if (rules===null) return null;
+      if (!obj(rules) || !str(rules.ruleVersion,80) || !rules.ruleVersion || !str(rules.approvedBy,100) || !rules.approvedBy || !dateValid(rules.approvedAt) || !Number.isInteger(rules.maxSessionXp) || rules.maxSessionXp<0 || rules.maxSessionXp>100000 || !Array.isArray(rules.exercises) || rules.exercises.length>100) throw Error('XP-Regeln benötigen Version, Freigabe und vollständige Grenzen.');
+      const names=new Set();
+      for (const e of rules.exercises) {
+        if (!obj(e) || !str(e.name,80) || !e.name || names.has(e.name) || !Array.isArray(e.sets) || e.sets.length>50) throw Error('XP-Übung ungültig.');
+        names.add(e.name);
+        for (const rule of e.sets) {
+          if (!obj(rule) || !['none','kg','reps'].includes(rule.bonusMetric) || !['no_bonus','no_xp'].includes(rule.overLimit) || !Array.isArray(rule.replacements) || rule.replacements.some(n=>!str(n,80) || !n)) throw Error('XP-Satzregel ungültig.');
+          for (const key of ['baseXp','bonusXpPerStep','maxBonusXp','skipPenaltyXp']) if (!Number.isInteger(rule[key]) || rule[key]<0 || rule[key]>10000) throw Error('XP-Punkte ungültig.');
+          if (typeof rule.bonusStep!=='number' || !Number.isFinite(rule.bonusStep) || rule.bonusStep<=0 || rule.bonusStep>1000 || !Number.isInteger(rule.maxReps) || rule.maxReps<1 || rule.maxReps>1000 || !weight(rule.maxWeight)) throw Error('XP-Grenzen ungültig.');
+          if (rule.bonusMetric==='kg' && rule.maxWeight===null) throw Error('Gewichtsbonus benötigt eine Gewichtsgrenze.');
+        }
+      }
+      return JSON.parse(JSON.stringify(rules));
+    }
+    function ensurePlan(s,newSession=false) {
+      if (s.planSlots) return;
+      s.planSlots=[];
+      s.xpRules=newSession ? (data.settings.xpRules ? validateXpRules(data.settings.xpRules) : null) : (s.xpRules ?? null);
+      s.exercises.forEach(e=>e.sets.forEach((set,i)=>{
+        set.planSlotId=uid();
+        s.planSlots.push({id:set.planSlotId,exerciseName:e.name,setIndex:i,targetReps:set.targetReps,targetWeight:set.targetWeight});
+      })); save();
+    }
+    function slotResult(s,slot) {
+      for (const e of s.exercises) for (const set of e.sets) if (set.planSlotId===slot.id) return {exercise:e,set};
+      return null;
+    }
+    function scoreWorkout(s) {
+      if (!s.xpRules) return null;
+      const ledger=(s.planSlots || []).map(slot=>{
+        const bound=slotResult(s,slot), rule=s.xpRules.exercises.find(e=>e.name===slot.exerciseName)?.sets[slot.setIndex];
+        let xp=0, reason='offen';
+        if (!rule) reason='keine Trainerregel';
+        else if (!bound || bound.set.status==='skipped') { xp=-rule.skipPenaltyXp; reason='ausgelassen'; }
+        else if (bound.set.status==='completed') {
+          const {set,exercise}=bound;
+          if (slot.targetWeight!==null && set.actualWeight===null) return {key:s.id+':'+slot.id,xp:0,reason:'Gewicht fehlt'};
+          const same=exercise.name===slot.exerciseName, accepted=same || rule.replacements.includes(exercise.name);
+          if (!accepted) { xp=-rule.skipPenaltyXp; reason='Ersatz nicht freigegeben'; }
+          else {
+            const beyond=set.actualReps>rule.maxReps || (set.actualWeight!==null && (rule.maxWeight===null || set.actualWeight>rule.maxWeight));
+            xp=beyond && rule.overLimit==='no_xp'?0:rule.baseXp;
+            reason=beyond?'über Bonusgrenze':'abgeschlossen';
+            if (!beyond && same) {
+              const delta=rule.bonusMetric==='kg' && slot.targetWeight!==null && set.actualWeight!==null && set.actualReps===slot.targetReps ? set.actualWeight-slot.targetWeight : rule.bonusMetric==='reps' && set.actualWeight===slot.targetWeight && slot.targetReps!==null ? set.actualReps-slot.targetReps : 0;
+              xp+=Math.min(rule.maxBonusXp,Math.max(0,Math.floor((delta+1e-8)/rule.bonusStep))*rule.bonusXpPerStep);
+            }
+          }
+        }
+        return {key:s.id+':'+slot.id,xp,reason};
+      });
+      return {ledger,total:Math.max(0,Math.min(s.xpRules.maxSessionXp,ledger.reduce((n,item)=>n+item.xp,0))),version:s.xpRules.ruleVersion};
+    }
+    function xpLabel(s) {
+      const score=scoreWorkout(s);
+      return score ? score.total+' XP · Regeln '+score.version : 'XP · wartet auf Trainerregeln';
+    }
+    function progressStats(s) {
+      const slots=s.planSlots || [];
+      const done=slots.filter(slot=>slotResult(s,slot)?.set.status==='completed').length;
+      const skipped=slots.filter(slot=>{ const result=slotResult(s,slot); return !result || result.set.status==='skipped'; }).length;
+      return {total:slots.length,done,skipped,percent:slots.length?Math.round(done/slots.length*100):0};
+    }
+
+    function updateProgress(s) {
+      const {total,done,skipped,percent}=progressStats(s);
+      const el=document.getElementById('workout-progress'); if(el) el.textContent=percent+' % trainiert · '+done+' / '+total+' geplante Sätze'+(skipped?' · '+skipped+' ausgelassen':'');
+      const bar=document.getElementById('training-percent'); if(bar) { bar.value=done; bar.max=total || 1; }
+      const xp=document.getElementById('workout-xp'); if(xp) xp.textContent=xpLabel(s);
+      const next=document.getElementById('next-exercise'); if(next) next.textContent=nextLabel(s,currentExercise(s));
+    }
+    function nextExercise(s,e) {
+      const others=s.exercises.filter(x=>x!==e && pending(x)>=0);
+      return others.find(x=>!x.deferred) || others[0] || null;
+    }
+    function nextLabel(s,e) { const next=nextExercise(s,e); return next?'Als Nächstes: '+next.name:'Trainingsübersicht'; }
+    function openExercise(s,e) {
+      s.currentExerciseId=e.id; chosenExercise=e.id; e.deferred=false; save(); render();
+    }
+    function deferExercise(s,e) {
+      const next=nextExercise(s,e);
+      if (!next) { say('Keine andere Übung mehr offen. Du kannst warten oder diese Übung ersetzen.'); return; }
+      e.deferred=true; openExercise(s,next); say(e.name+' bleibt für später offen.');
+    }
+    function skipExercise(s,e) {
+      if (!window.confirm('Offene Sätze von '+e.name+' auslassen? Du kannst sie in der Übersicht später wieder öffnen. XP-Abzüge gelten erst mit Trainerregeln.')) return;
+      e.sets.forEach(set=>{ if(set.status==='planned') set.status='skipped'; }); e.deferred=false;
+      const next=nextExercise(s,e); if(next) s.currentExerciseId=next.id;
+      save(); render(); say(e.name+' ausgelassen.');
+    }
+    function finishWorkout(s) {
+      for (const e of s.exercises) for (let i=0;i<e.sets.length;i++) {
+        const cached=inputDrafts.get(e.id+':'+i);
+        if (e.sets[i].status==='completed' && cached && (parseReps(cached.r)===null || (!bodyweight(e.name) && parseWeight(cached.w)===null))) {
+          say('Bitte ungültige Eingaben bei '+e.name+' Satz '+(i+1)+' korrigieren.');
+          document.getElementById('exercise-'+e.id)?.scrollIntoView({block:'start'}); return;
+        }
+      }
+      const open=s.exercises.reduce((n,e)=>n+e.sets.filter(x=>x.status==='planned').length,0);
+      if (open && !window.confirm(open+' offene Sätze als übersprungen markieren und Training beenden?')) return;
+      s.exercises.forEach(e=>e.sets.forEach(x=>{ if (x.status==='planned') x.status='skipped'; }));
+      s.status='completed'; s.endTime=Date.now(); s.restEnd=null; inputDrafts.clear(); save(); selectedSession=s.id; go('finish');
     }
     function showWorkout() {
       const s=active(); if (!s) { go('home'); return; }
-      title('Training · '+data.settings.templates[s.type].name);
-      main.append(node('p','Begonnen: '+timeLabel(s.startTime),'muted'));
+      ensurePlan(s);
+      const header=node('section',undefined,'workout-header'), info=node('div');
+      info.append(node('h2',data.settings.templates[s.type].name));
+      const elapsed=node('p','','small muted'); elapsed.id='workout-elapsed';
+      info.append(elapsed);
+      header.append(info,button('Beenden',()=>finishWorkout(s),true)); main.append(header);
       const e=currentExercise(s);
-      if (e) main.append(node('p','Pause: '+Math.floor(restFor(e.name)/60)+':'+String(restFor(e.name)%60).padStart(2,'0'),'muted'));
-      main.append(button('Pause starten',()=>{ startRest(s,e?.name); render(); }));
-      if (e) { chosenExercise=e.id; main.append(exerciseCard(s,e)); }
-      else main.append(node('p','Keine Übungen mehr offen.','notice'));
-      if (lastFeedback) main.append(node('p',lastFeedback,'notice'));
-      ratingCard(s); restCard(s);
-      const list=node('section',undefined,'card'); list.append(node('h3','Übungen und Reihenfolge'));
-      s.exercises.forEach((x,i)=>{
-        const item=node('div',undefined,'item'); item.append(node('p',x.name+' · '+x.sets.filter(z=>z.status==='completed').length+'/'+x.sets.length+' geschafft'));
-        const row=node('div',undefined,'row');
-        row.append(button('Öffnen',()=>{ chosenExercise=x.id; render(); }),button('Hoch',()=>{ move(s.exercises,i,-1); save(); render(); }),button('Runter',()=>{ move(s.exercises,i,1); save(); render(); }));
-        item.append(row); list.append(item);
-      }); main.append(list);
-      addExercise(main,name=>{ const e=exercise(name); s.exercises.push(e); chosenExercise=e.id; save(); render(); });
-      main.append(button('Training beenden',()=>{
-        const open=s.exercises.reduce((n,e)=>n+e.sets.filter(x=>x.status==='planned').length,0);
-        if (open && !window.confirm(open+' offene Sätze als übersprungen markieren und Training beenden?')) return;
-        s.exercises.forEach(e=>e.sets.forEach(x=>{ if (x.status==='planned') x.status='skipped'; }));
-        s.status='completed'; s.endTime=Date.now(); s.restEnd=null; lastFeedback=''; afterSet=null; save(); selectedSession=s.id; go('finish');
-      }));
+      if (e) {
+        s.currentExerciseId=e.id;
+        main.append(node('p','Übung '+(s.exercises.indexOf(e)+1)+' von '+s.exercises.length,'eyebrow'),exerciseCard(s,e));
+        const actions=node('div',undefined,'next-actions');
+        const next=button(nextLabel(s,e),()=>{
+          const n=nextExercise(s,e);
+          if(n) { if(pending(e)>=0)e.deferred=true; openExercise(s,n); }
+          else document.getElementById('workout-overview').open=true;
+        },true); next.id='next-exercise';
+        actions.append(next);
+        if (pending(e)>=0) actions.append(button('Gerät besetzt · später',()=>deferExercise(s,e)),button('Übung auslassen',()=>skipExercise(s,e)));
+        main.append(actions);
+      }
+      const overview=node('details'); overview.id='workout-overview'; overview.append(node('summary','Trainingsplan · alle Übungen'));
+      s.exercises.forEach(x=>{
+        const done=x.sets.filter(set=>set.status==='completed').length;
+        const item=node('div',undefined,'item');
+        item.append(button(x.name+' · '+done+'/'+x.sets.length+(x.deferred?' · später':''),()=>openExercise(s,x)));
+        if (x.sets.some(set=>set.status==='skipped')) item.append(button('Ausgelassene Sätze wieder öffnen',()=>{ x.sets.forEach(set=>{if(set.status==='skipped')set.status='planned';}); openExercise(s,x); }));
+        overview.append(item);
+      }); main.append(overview);
+      const add=node('details'); add.append(node('summary','+ Übung hinzufügen')); addExercise(add,name=>{ const extra=exercise(name); s.exercises.push(extra); s.currentExerciseId=extra.id; save(); render(); }); main.append(add);
+      const bottom=node('section',undefined,'workout-bottom'); bottom.id='workout-bottom';
+      const progress=node('p'); progress.id='workout-progress';
+      const bar=node('progress'); bar.id='training-percent'; bar.setAttribute('aria-label','Anteil tatsächlich abgeschlossener Sätze');
+      const xp=node('p',xpLabel(s),'muted'); xp.id='workout-xp'; bottom.append(progress,bar,xp); document.body.append(bottom);
+      updateProgress(s); restCard(s); tick();
     }
+
     function duration(s) {
       if (s.startTime===null || s.endTime===null) return 'unbekannt';
       const minutes=Math.floor((s.endTime-s.startTime)/60000);
@@ -426,14 +682,12 @@
       const s=data.sessions.find(x=>x.id===selectedSession && x.status==='completed'); if (!s) { go('home'); return; }
       title('Training abgeschlossen');
       main.append(node('p',dateLabel(s.date)+' · Dauer '+duration(s),'muted'));
-      s.exercises.forEach(e=>{
-        const card=node('section',undefined,'card'); card.append(node('h3',e.name));
-        card.append(node('p',e.sets.filter(x=>x.status==='completed').length+' geschaffte Sätze · '+changes(e,s)));
-        main.append(card);
-      });
+      const total=s.exercises.reduce((n,e)=>n+e.sets.filter(x=>x.status==='completed').length,0);
+      main.append(node('p',s.exercises.length+' Übungen · '+total+' abgeschlossene Sätze','notice'),node('p',xpLabel(s)));
+      main.append(button('Training ansehen',()=>{ historyFilter=''; go('history'); }));
       const card=node('section',undefined,'card'); const note=field(card,'Kurze Notiz (optional)',s.note,'textarea'); note.maxLength=1000;
       card.append(button('Speichern und zur Startseite',()=>{ s.note=note.value.trim(); save(); go('home'); },true)); main.append(card);
-      main.append(button('In Drive sichern',backupData));
+      main.append(button('Backup teilen / herunterladen',backupData));
     }
     function correction(s,e,set,i) {
       const box=node('details'); box.append(node('summary','Satz '+(i+1)+': '+statusWord(set.status)+' · '+setText(set,e.name,true)));
@@ -456,17 +710,23 @@
       const nutritionList=node('section',undefined,'card'); nutritionList.append(node('h3','Protein und Kreatin · letzte 14 Tage'));
       const base=new Date(); base.setHours(12,0,0,0);
       for (let i=0;i<14;i++) { const d=new Date(base); d.setDate(d.getDate()-i); const key=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); const entry=data.nutrition[key]; const total=entry?.protein.reduce((sum,x)=>sum+x.g,0); nutritionList.append(node('p',dateLabel(key)+': '+(entry?String(Math.round(total*10)/10).replace('.',',')+' g Protein · Kreatin '+(entry.creatine?'genommen':'offen'):'keine Angabe'),'muted')); }
-      main.append(nutritionList);
+      const nutrition=node('details'); nutrition.append(node('summary','Ernährungsverlauf'),nutritionList);
       const sessions=completed();
-      if (!sessions.length) { main.append(node('p','Noch keine abgeschlossenen Trainings.')); return; }
+      if (!sessions.length) { main.append(node('p','Noch keine abgeschlossenen Trainings.'),nutrition); return; }
       const names=[...new Set(sessions.flatMap(s=>s.exercises.map(e=>e.name)))].sort((a,b)=>a.localeCompare(b,'de'));
       const filter=select(main,'Übungsverlauf',[['','Alle Übungen'],...names.map(n=>[n,n])],historyFilter);
-      filter.addEventListener('change',()=>{ historyFilter=filter.value; render(); });
+      filter.addEventListener('change',()=>{ historyFilter=filter.value; selectedSession=null; render(); });
+      if (selectedSession) main.append(button('← Alle Trainings',()=>{ selectedSession=null; render(); }));
       sessions.forEach(s=>{
+        if (selectedSession && s.id!==selectedSession) return;
         if (historyFilter && !s.exercises.some(e=>e.name===historyFilter)) return;
         const card=node('section',undefined,'card');
         card.append(node('h3',dateLabel(s.date)+' · '+data.settings.templates[s.type].name));
         card.append(node('p','Dauer: '+duration(s)+' · Beginn: '+timeLabel(s.startTime),'muted'));
+        if (!selectedSession) {
+          const done=s.exercises.reduce((n,e)=>n+e.sets.filter(x=>x.status==='completed').length,0);
+          card.append(node('p',s.exercises.length+' Übungen · '+done+' Sätze'),button('Training ansehen',()=>{ selectedSession=s.id; render(); })); main.append(card); return;
+        }
         if (s.note) card.append(node('p',s.note));
         s.exercises.filter(e=>!historyFilter || e.name===historyFilter).forEach(e=>{
           const item=node('div',undefined,'item'); item.append(node('h3',e.name));
@@ -475,6 +735,7 @@
           card.append(item);
         }); main.append(card);
       });
+      main.append(nutrition);
     }
     function download(filename='gym-log-'+today()+'.json') {
       const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=node('a');
@@ -482,7 +743,7 @@
     }
     const BACKUP_KEY='gym-backup-time';
     function backupStatus() {
-      try { const saved=localStorage.getItem(BACKUP_KEY); return saved ? 'Letzte Sicherung: '+new Date(Number(saved)).toLocaleString('de-AT') : 'Noch keine Sicherung'; }
+      try { const saved=localStorage.getItem(BACKUP_KEY); return saved ? 'Zuletzt geteilt / heruntergeladen: '+new Date(Number(saved)).toLocaleString('de-AT') : 'Noch keine Sicherung'; }
       catch { return 'Noch keine Sicherung'; }
     }
     async function backupData() {
@@ -498,8 +759,13 @@
     function showSettings() {
       title('Einstellungen');
       const card=node('section',undefined,'card'); card.append(node('h3','Pause und Gewichtsschritte'));
-      const rest=field(card,'Standardpause in Sekunden',String(data.settings.restSeconds),'number'); rest.min=15; rest.max=900;
+      const rest=field(card,'Pause zwischen Sätzen in Sekunden',String(data.settings.restSeconds),'number'); rest.min=15; rest.max=900;
       card.append(button('Pause speichern',()=>{ const n=Number(rest.value); if (!Number.isInteger(n) || n<15 || n>900) { say('Bitte 15 bis 900 Sekunden eingeben.'); return; } data.settings.restSeconds=n; save(); say('Pause gespeichert.'); }));
+      const transition=field(card,'Pause zwischen Übungen in Sekunden',String(data.settings.betweenExerciseRestSeconds),'number'); transition.min=15; transition.max=900;
+      card.append(button('Übungswechsel-Pause speichern',()=>{
+        const n=Number(transition.value); if (!Number.isInteger(n) || n<15 || n>900) { say('Bitte 15 bis 900 Sekunden eingeben.'); return; }
+        data.settings.betweenExerciseRestSeconds=n; save(); say('Pause zwischen Übungen gespeichert.');
+      }));
       const names=[...new Set([...DEFAULTS.upper,...DEFAULTS.lower,...EXTRA,...data.settings.templates.upper.exercises,...data.settings.templates.lower.exercises,...data.sessions.flatMap(s=>s.exercises.map(e=>e.name))])].filter(n=>!bodyweight(n)).sort((a,b)=>a.localeCompare(b,'de'));
       const pick=select(card,'Gewichtsschritt für Übung',names.map(n=>[n,n]),names[0]);
       const stepInput=field(card,'Schritt in kg',amount(step(names[0]))); stepInput.inputMode='decimal';
@@ -507,7 +773,7 @@
       card.append(button('Schritt speichern',()=>{ const n=parseWeight(stepInput.value); if (n===null || n<=0) { say('Bitte einen positiven Gewichtsschritt eingeben.'); return; } data.settings.steps[pick.value]=n; save(); say('Gewichtsschritt gespeichert.'); }));
       const restNames=[...new Set([...DEFAULTS.upper,...DEFAULTS.lower,...EXTRA,...data.settings.templates.upper.exercises,...data.settings.templates.lower.exercises,...data.sessions.flatMap(s=>s.exercises.map(e=>e.name))])].sort((a,b)=>a.localeCompare(b,'de'));
       const restPick=select(card,'Pausenzeit für Übung',[['','Standardpause'],...restNames.map(n=>[n,n])],'');
-      const restInput=field(card,'Übungspause in Sekunden',String(data.settings.restSeconds),'number'); restInput.min=15; restInput.max=900;
+      const restInput=field(card,'Satzpause für diese Übung in Sekunden',String(data.settings.restSeconds),'number'); restInput.min=15; restInput.max=900;
       restPick.addEventListener('change',()=>{ restInput.value=String(data.settings.exerciseRestSeconds[restPick.value] || data.settings.restSeconds); });
       card.append(button('Übungspause speichern',()=>{ const n=Number(restInput.value); if (!Number.isInteger(n) || n<15 || n>900) { say('Bitte 15 bis 900 Sekunden eingeben.'); return; } if (restPick.value) data.settings.exerciseRestSeconds[restPick.value]=n; else data.settings.restSeconds=n; save(); say('Pause gespeichert.'); }));
       const target=field(card,'Protein-Ziel pro Tag in g',String(data.settings.proteinTarget),'number');
@@ -516,6 +782,20 @@
       const creatine=field(card,'Kreatin-Dosis in g',String(data.settings.creatineDose),'number');
       card.append(button('Ernährungswerte speichern',()=>{ const vals=[target,scoop,protein,creatine].map(x=>Number(x.value)); if (vals.some(n=>!Number.isFinite(n)||n<=0||n>300) || vals[3]>100) { say('Bitte gültige positive Mengen eingeben.'); return; } [data.settings.proteinTarget,data.settings.scoopGrams,data.settings.proteinPerScoop,data.settings.creatineDose]=vals; save(); render(); say('Ernährungswerte gespeichert.'); }));
       main.append(card);
+      const xpBox=node('section',undefined,'card'); xpBox.append(node('h3','Trainer · XP-Regeln'));
+      xpBox.append(node('p',data.settings.xpRules?'Für neue Trainings: '+data.settings.xpRules.ruleVersion:'Noch keine freigegebenen Regeln. XP bleiben offen.','muted'));
+      xpBox.append(node('p','Freigegebene Regeln als JSON importieren. Laufende und abgeschlossene Trainings behalten ihre bisherigen Regeln.','small muted'));
+      const xpFile=field(xpBox,'Trainerregeln importieren','','file'); xpFile.accept='.json,application/json';
+      const xpPreview=node('div'); xpBox.append(xpPreview);
+      xpFile.addEventListener('change',async()=>{
+        xpPreview.replaceChildren(); const file=xpFile.files[0]; if(!file)return;
+        try {
+          if(file.size>1024*1024)throw Error('Datei ist zu groß.');
+          const rules=validateXpRules(JSON.parse(await file.text())); if(!rules)throw Error('Regeln fehlen.');
+          xpPreview.append(node('p','Version '+rules.ruleVersion+' · Freigabe: '+rules.approvedBy+' · '+rules.approvedAt));
+          xpPreview.append(button('Freigegebene Regeln für neue Trainings übernehmen',()=>{data.settings.xpRules=rules;save();render();say('Trainerregeln für neue Trainings gespeichert.');},true));
+        } catch(error) { xpPreview.append(node('p','Import fehlgeschlagen: '+error.message,'notice')); }
+      }); main.append(xpBox);
       for (const key of ['upper','lower']) {
         const t=data.settings.templates[key], box=node('section',undefined,'card'); box.append(node('h3','Vorlage · '+t.name));
         const name=field(box,'Name der Vorlage',t.name); name.maxLength=60;
@@ -530,7 +810,7 @@
         main.append(box);
         addExercise(main,n=>{ if (t.exercises.includes(n)) { say('Übung steht bereits in der Vorlage.'); return; } t.exercises.push(n); save(); render(); });
       }
-      const backup=node('section',undefined,'card'); backup.append(node('h3','Daten'),node('p','Alle Daten als JSON sichern oder eine Sicherung einschließlich unsicherer Sätze importieren.','muted'),button('JSON exportieren',download),button('In Drive sichern',backupData),node('p',backupStatus(),'muted backup-status'));
+      const backup=node('section',undefined,'card'); backup.append(node('h3','Daten'),node('p','Alle Daten als JSON sichern oder eine Sicherung einschließlich unsicherer Sätze importieren.','muted'),button('JSON exportieren',()=>download()),button('Backup teilen / herunterladen',backupData),node('p',backupStatus(),'muted backup-status'));
       const label=node('label','JSON importieren'), file=node('input'); file.type='file'; file.accept='.json,application/json'; file.id='import-file'; label.htmlFor=file.id; backup.append(label,file);
       const preview=node('div'); backup.append(preview);
       file.addEventListener('change',async()=>{
@@ -544,22 +824,30 @@
             const next=validateData(importCandidate), old=data, prior=storageProblem;
             data=next; storageProblem='';
             if (!save()) { data=old; storageProblem=prior; say('Import nicht gespeichert. Vorhandene Daten bleiben erhalten.'); return; }
-            document.getElementById('storage-message').hidden=true; draft=null; chosenExercise=null; selectedSession=null; historyFilter=''; importCandidate=null; go('home'); say('Daten importiert.');
+            document.getElementById('storage-message').hidden=true; draft=null; chosenExercise=null; selectedSession=null; historyFilter=''; inputDrafts.clear(); importCandidate=null; go('home'); say('Daten importiert.');
           },true));
         } catch(error) { preview.append(node('p','Import fehlgeschlagen: '+error.message,'notice')); }
       }); main.append(backup);
     }
     function render() {
+      document.getElementById('rest-bar')?.remove();
+      document.getElementById('workout-bottom')?.remove();
+      document.body.classList.toggle('training',view==='workout');
       main.replaceChildren();
-      document.querySelectorAll('nav button').forEach(b=>{ if (b.dataset.view===view) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+      document.querySelectorAll('nav button').forEach(b=>{ if (b.dataset.view===view || (b.dataset.view==='home' && ['workout','plan','finish'].includes(view))) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
       ({home:showHome,plan:showPlan,workout:showWorkout,finish:showFinish,history:showHistory,settings:showSettings}[view])();
     }
     function tick() {
-      const s=active(); if (!s?.restEnd) return;
+      const s=active();
+      const elapsed=document.getElementById('workout-elapsed');
+      if (elapsed && s) { const minutes=Math.floor((Date.now()-s.startTime)/60000); elapsed.textContent=minutes+' Min. Training'; }
+      if (!s?.restEnd) return;
       const left=Math.max(0,Math.ceil((s.restEnd-Date.now())/1000));
       const timer=document.getElementById('rest-timer');
+      const label=document.getElementById('rest-label');
+      if (label) label.textContent=left ? (restLabel(s)) : 'Pause vorbei';
       if (timer) timer.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
-      if (!left && !restAnnounced) { restAnnounced=true; if (navigator.vibrate) navigator.vibrate(250); if (view==='workout') render(); }
+      if (!left && !restAnnounced) { restAnnounced=true; if (navigator.vibrate) navigator.vibrate(250); say('Pause vorbei. Bereit für den nächsten Satz.'); }
     }
     document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
     document.addEventListener('visibilitychange',()=>{ if (!document.hidden) tick(); });
