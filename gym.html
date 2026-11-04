@@ -400,7 +400,7 @@
       const timer=node('p','','timer'); timer.id='rest-timer'; timer.setAttribute('role','timer');
       description.append(label,timer); bar.append(description);
       for (const [text,delta] of [['−15 s',-15000],['+15 s',15000]]) bar.append(button(text,()=>{ s.restEnd=Math.max(Date.now(),s.restEnd)+delta; s.restEnd=Math.max(Date.now(),s.restEnd); restAnnounced=false; save(); tick(); }));
-      bar.append(button('Beenden',()=>{ s.restEnd=null; save(); bar.remove(); }));
+      bar.append(button('Pause beenden',()=>{ s.restEnd=null; save(); bar.remove(); }));
       (document.getElementById('workout-bottom') || document.body).append(bar); tick();
     }
     function exerciseCard(s,e) {
@@ -630,6 +630,30 @@
       s.exercises.forEach(e=>e.sets.forEach(x=>{ if (x.status==='planned') x.status='skipped'; }));
       s.status='completed'; s.endTime=Date.now(); s.restEnd=null; inputDrafts.clear(); save(); selectedSession=s.id; go('finish');
     }
+    // Plain-text summary for asking a chat coach mid-workout; completed sets only count as done.
+    function workoutSummary(s) {
+      const minutes=Math.floor((Date.now()-s.startTime)/60000), lines=[];
+      lines.push('Mein Training heute: '+data.settings.templates[s.type].name+', '+dateLabel(s.date)+', seit '+minutes+' Min.');
+      const open=[];
+      for (const e of s.exercises) {
+        if (!e.sets.some(x=>x.status!=='planned')) { open.push(e.name); continue; }
+        const sets=e.sets.map(x=>x.status==='completed' ? setText(x,e.name,true)+(x.rating?' ('+x.rating+')':'') : x.status==='skipped' ? 'ausgelassen' : 'offen, Ziel '+setText(x,e.name));
+        lines.push(e.name+': '+sets.join(' · ')+(e.note?' · Notiz: '+e.note:''));
+      }
+      if (open.length) lines.push('Noch nicht begonnen: '+open.join(', '));
+      lines.push('','Wie soll ich den Rest anpassen? Heute fühle ich mich: ');
+      return lines.join('\n');
+    }
+    async function shareWorkout(s) {
+      const text=workoutSummary(s);
+      if (navigator.share) {
+        try { await navigator.share({title:'Mein Training',text}); return; }
+        catch (error) { if (error.name==='AbortError') return; }
+      }
+      try { await navigator.clipboard.writeText(text); say('Training kopiert. In ChatGPT oder Claude einfügen.'); return; } catch {}
+      const box=node('textarea'); box.value=text; box.readOnly=true; box.rows=8; box.setAttribute('aria-label','Training zum Kopieren');
+      main.append(box); box.focus(); box.select(); say('Text markiert. Kopieren und im Chat einfügen.');
+    }
     function showWorkout() {
       const s=active(); if (!s) { go('home'); return; }
       ensurePlan(s);
@@ -652,6 +676,7 @@
         if (pending(e)>=0) actions.append(button('Gerät besetzt · später',()=>deferExercise(s,e)),button('Übung auslassen',()=>skipExercise(s,e)));
         main.append(actions);
       }
+      const ask=node('div',undefined,'next-actions'); ask.append(button('Coach fragen · Training teilen',()=>shareWorkout(s))); main.append(ask);
       const overview=node('details'); overview.id='workout-overview'; overview.append(node('summary','Trainingsplan · alle Übungen'));
       s.exercises.forEach(x=>{
         const done=x.sets.filter(set=>set.status==='completed').length;
