@@ -144,7 +144,6 @@
     body.training .eyebrow { margin-bottom:6px; }
     body.training .workout-header { margin-bottom:10px; padding-bottom:8px; }
     .workout-header > div { flex:1; min-width:0; }
-    .workout-home { flex:none; min-width:44px; padding:10px 0; border:0; background:transparent; color:var(--accent); }
     body.training .shell { padding-top:8px; padding-bottom:90px; }
     .workout-manage { margin-top:4px; }
     #feedback { bottom:76px; font-size:14px; padding:8px 12px; }
@@ -192,6 +191,24 @@
     #rest-skip { width:100%; min-height:56px; margin-top:12px; }
     .rest-screen .eyebrow { text-transform:none; letter-spacing:0; font-size:17px; }
     .rest-screen summary { font-size:14px; color:var(--muted); }
+
+    /* Quiet training navigation and exercise decisions. */
+    body.training .workout-header { justify-content:flex-start; gap:0; }
+    .workout-header h2 { font-size:20px; font-weight:600; line-height:1.25; letter-spacing:-.3px; }
+    .workout-header #workout-elapsed { margin-top:3px; font-size:13px; line-height:1.4; }
+    #workout-home-dock { display:flex; align-items:center; justify-content:center; width:44px; min-height:44px; height:44px; margin:12px auto 0; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--soft); color:var(--ink); font-size:26px; font-weight:400; line-height:1; }
+    #workout-home-dock:hover { border-color:var(--muted); }
+    .exercise-decision { position:fixed; inset:auto 0 0; width:min(100%,680px); max-width:100%; max-height:85svh; margin:0 auto; padding:24px max(16px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); overflow-y:auto; overscroll-behavior:contain; border:1px solid var(--line); border-bottom:0; border-radius:20px 20px 0 0; background:var(--surface); color:var(--ink); text-align:left; }
+    .exercise-decision::backdrop { background:#1a191733; }
+    .exercise-decision h2,.exercise-decision h3 { margin:0 0 8px; font-size:21px; line-height:1.3; letter-spacing:-.3px; }
+    .exercise-decision p { margin:0 0 16px; color:var(--muted); font-size:15px; }
+    .exercise-decision button { width:100%; min-height:48px; }
+    .exercise-decision > button + button { margin-top:8px; }
+    .exercise-decision button[aria-pressed="true"],.exercise-decision button.is-selected { background:var(--soft); border-color:var(--accent); color:var(--accent); font-weight:600; }
+    @media (max-height:640px) { .exercise-decision { padding-top:16px; } }
+    body.training main { touch-action:pan-y pinch-zoom; }
+    .workout-bottom { display:flex; flex-direction:column; }
+    #workout-home-dock { order:10; align-self:center; }
   </style>
 </head>
 <body>
@@ -428,7 +445,7 @@
       if (session) {
         const card=node('section',undefined,'card');
         card.append(node('h3','Training fortsetzen'),node('p',data.settings.templates[session.type].name+' · begonnen '+timeLabel(session.startTime)));
-        card.append(button('Training fortsetzen',()=>go('workout'),true)); main.append(card);
+        card.append(button('Training fortsetzen',()=>go('workout'),true),button('Training beenden',()=>finishWorkout(session))); main.append(card);
         const alternatives=node('div',undefined,'stack new-workout-actions');
         for(const type of ['upper','lower']) alternatives.append(button('Neues '+(type==='upper'?'Oberkörpertraining':'Unterkörpertraining'),()=>startNewWorkout(type)));
         main.append(alternatives);
@@ -527,6 +544,7 @@
       return owner && pending(owner)>=0 ? owner : owner ? nextExercise(s,owner) : null;
     }
     function endRest(s,announce=false) {
+      blockPrimary();
       const next=restNext(s);
       s.restEnd=null; save(); updateRestBar(s);
       if(view==='workout') {
@@ -858,6 +876,40 @@
       const xp=document.getElementById('workout-xp'); if(xp) xp.textContent=xpLabel(s);
       const next=document.getElementById('next-exercise'); if(next) next.textContent=nextLabel(s,currentExercise(s));
     }
+    function requestNextExercise() {
+      const s=active(); if(view!=='workout' || !s || Date.now()<primaryBlockedUntil) return;
+      if(s.restEnd) { say('Bitte zuerst die Pause überspringen oder abwarten.'); return; }
+      const e=currentExercise(s); if(!e)return;
+      if(pending(e)>=0 && !e.sets.some(set=>set.status==='completed')) {
+        if(document.getElementById('exercise-decision'))return;
+        const dialog=node('dialog',undefined,'exercise-decision'); dialog.id='exercise-decision';
+        dialog.setAttribute('aria-label',e.name+' überspringen?');
+        dialog.append(node('h3',e.name),node('p','Noch kein Satz gespeichert. Möchtest du die Übung später machen oder auslassen?','muted'));
+        const valid=()=>active()?.id===s.id && currentExercise(s)?.id===e.id;
+        dialog.append(button('Gerät besetzt · später',()=>{dialog.remove();if(valid())deferExercise(s,e);}),button('Übung auslassen',()=>{dialog.remove();if(valid())skipExercise(s,e,false);}),button('Bei dieser Übung bleiben',()=>{dialog.remove();document.getElementById('workout-bottom')?.focus();}));
+        dialog.addEventListener('cancel',()=>{dialog.remove();document.getElementById('workout-bottom')?.focus();});
+        document.body.append(dialog); dialog.showModal?.(); dialog.querySelector('button')?.focus(); return;
+      }
+      blockPrimary();
+      const next=nextExercise(s,e);
+      if(next) { if(pending(e)>=0)e.deferred=true; openExercise(s,next,false); }
+      else finishWorkout(s);
+    }
+    let swipeStart=null;
+    main.addEventListener('pointerdown',event=>{
+      swipeStart=null;
+      if(view!=='workout' || event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0))return;
+      if(event.target.closest?.('input,textarea,select,button,a,summary,.value-wheel,dialog'))return;
+      swipeStart={x:event.clientX,y:event.clientY,id:event.pointerId,time:Date.now()};
+    });
+    main.addEventListener('pointercancel',()=>{swipeStart=null;});
+    main.addEventListener('pointerup',event=>{
+      const start=swipeStart; swipeStart=null;
+      if(!start || start.id!==event.pointerId || view!=='workout' || Date.now()-start.time>1200)return;
+      const dx=event.clientX-start.x,dy=event.clientY-start.y;
+      if(Math.abs(dx)<80 || Math.abs(dx)<Math.abs(dy)*1.8)return;
+      if(dx<0)go('home'); else requestNextExercise();
+    });
     function nextExercise(s,e) {
       const index=s.exercises.indexOf(e);
       const ordered=[...s.exercises.slice(index+1),...s.exercises.slice(0,index)];
@@ -875,8 +927,8 @@
       if(next && !next.deferred) { openExercise(s,next,false); say(e.name+' bleibt für später offen.'); }
       else { save(); render(); say('Alle offenen Übungen sind zurückgestellt. Wähle ein freies Gerät im Plan oder beende das Training.'); }
     }
-    function skipExercise(s,e) {
-      if (!window.confirm('Offene Sätze von '+e.name+' auslassen? Du kannst sie in der Übersicht später wieder öffnen. XP-Abzüge gelten erst mit Trainerregeln.')) return;
+    function skipExercise(s,e,confirmSkip=true) {
+      if (confirmSkip && !window.confirm('Offene Sätze von '+e.name+' auslassen? Du kannst sie in der Übersicht später wieder öffnen. XP-Abzüge gelten erst mit Trainerregeln.')) return;
       e.sets.forEach(set=>{ if(set.status==='planned') set.status='skipped'; }); e.deferred=false;
       const next=nextExercise(s,e);
       if(next) { s.currentExerciseId=next.id; chosenExercise=next.id; }
@@ -928,9 +980,7 @@
       info.append(heading);
       const elapsed=node('p','','small muted'); elapsed.id='workout-elapsed';
       info.append(elapsed);
-      const home=button('‹ Start',()=>go('home')); home.className='workout-home';
-      home.setAttribute('aria-label','Zur Startseite');
-      header.append(home,info,button('Beenden',()=>finishWorkout(s))); main.append(header);
+      header.append(info); main.append(header);
       const e=currentExercise(s);
       const remaining=s.exercises.filter(x=>pending(x)>=0);
       const waiting=remaining.length>0 && remaining.every(x=>x.deferred);
@@ -941,18 +991,12 @@
         const card=exerciseCard(s,e); exerciseManagement=card.management;
         main.append(node('p','Übung '+(s.exercises.indexOf(e)+1)+' von '+s.exercises.length,'eyebrow'),card);
         const actions=node('div',undefined,'next-actions workout-actions');
-        const next=button(nextLabel(s,e),()=>{
-          if(Date.now()<primaryBlockedUntil) return;
-          blockPrimary();
-          const n=nextExercise(s,e);
-          if(n) { if(pending(e)>=0)e.deferred=true; openExercise(s,n,false); }
-          else finishWorkout(s);
-        },true); next.id='next-exercise'; next.hidden=pending(e)>=0;
+        const next=button(nextLabel(s,e),requestNextExercise,true); next.id='next-exercise'; next.hidden=pending(e)>=0;
         actions.append(next);
-        if (pending(e)>=0) actions.append(button('Gerät besetzt · später',()=>deferExercise(s,e)),button('Übung auslassen',()=>skipExercise(s,e)));
         main.append(actions);
       }
       const manage=node('details',undefined,'workout-manage'); manage.append(node('summary','Training verwalten'));
+      manage.append(button('Nächste Übung',requestNextExercise));
       if(exerciseManagement) manage.append(exerciseManagement);
       const ask=node('details'); ask.append(node('summary','Training teilen'),button('Coach fragen · Training teilen',()=>shareWorkout(s))); manage.append(ask);
       const overview=node('details'); overview.id='workout-overview'; overview.open=waiting;
@@ -969,8 +1013,10 @@
       bottom.tabIndex=-1; bottom.setAttribute('aria-label','Satzaktionen');
       const progress=node('p'); progress.id='workout-progress';
       const bar=node('progress'); bar.id='training-percent'; bar.setAttribute('aria-label','Anteil tatsächlich abgeschlossener Sätze');
-      const complete=button('Satz geschafft',()=>{ document.querySelectorAll('.active-set')[0]?.confirm(); },true); complete.id='complete-set';
+      const complete=button('Satz geschafft',()=>{ if(!active()?.restEnd) document.querySelectorAll('.active-set')[0]?.confirm(); },true); complete.id='complete-set';
       bottom.append(progress,bar,complete);
+      const homeDock=button('⌂',()=>go('home')); homeDock.id='workout-home-dock'; homeDock.setAttribute('aria-label','Zur Startseite'); homeDock.title='Startseite';
+      bottom.append(homeDock);
       const actions=main.querySelector('.workout-actions'); if(actions) bottom.append(actions);
       main.append(bottom); updatePrimary();
       updateProgress(s); updateRestBar(s); tick();
@@ -1182,6 +1228,7 @@
       document.body.append(panel);
     }
     function render() {
+      swipeStart=null; document.getElementById('exercise-decision')?.remove();
       document.getElementById('rest-bar')?.remove();
       document.getElementById('workout-bottom')?.remove();
       document.body.classList.toggle('training',view==='workout');
