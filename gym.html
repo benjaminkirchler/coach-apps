@@ -1088,9 +1088,9 @@
       if(!start || start.id!==event.pointerId || !['workout','home','focus'].includes(view) || Date.now()-start.time>1200)return;
       const dx=event.clientX-start.x,dy=event.clientY-start.y;
       if(Math.abs(dx)<80 || Math.abs(dx)<Math.abs(dy)*1.8)return;
-      if(view==='home') { if(dx>0)go('focus'); return; }
-      if(view==='focus') { if(dx<0)go('home'); return; }
-      if(dx<0)go('home'); else requestNextExercise();
+      if(view==='home') { if(dx<0)go('focus'); return; }
+      if(view==='focus') { if(dx>0)go('home'); return; }
+      if(dx>0)go('home'); else requestNextExercise();
     });
     function nextExercise(s,e) {
       const index=s.exercises.indexOf(e);
