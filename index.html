@@ -24,6 +24,15 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
 .settings-group .list>*{position:relative}.settings-group .list>*+*,.history-list>*+*{border-top:0}.settings-group .list>*+*::before,.history-list>*+*::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:var(--sep)}.delete-area .icon{width:22px;height:22px}
 /* A quiet, seven-day calendar: the grid remains aligned with its week strip. */
 .tabbar button{min-width:0}.tabbar button span{white-space:nowrap}.home .date-eyebrow{margin-right:48px}.home-tools{top:22px}.calendar-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin:8px 0 10px}.calendar-toolbar{flex-wrap:wrap}.calendar-toolbar h2{order:2;flex:0 0 100%;font-size:34px;line-height:41px;letter-spacing:.37px;margin:2px 0 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calendar-toolbar button{padding:8px;min-width:36px;flex:none;white-space:nowrap}.calendar-toolbar .calendar-today{font-size:17px;padding:8px 6px}.calendar-week{display:grid;grid-template-columns:30px repeat(7,minmax(0,1fr));border-bottom:.5px solid var(--sep);padding-bottom:5px}.calendar-day{flex-direction:column;gap:3px;min-width:0;padding:4px 0;color:var(--label);font-size:12px;line-height:16px}.calendar-day .weekday{color:var(--label2);font-size:11px}.calendar-day .day-number{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:17px;line-height:22px}.calendar-day[aria-pressed=true] .day-number{background:var(--label);color:var(--bg)}.calendar-day.is-today .day-number{background:var(--accent);color:#fff}.calendar-all-day{display:grid;grid-template-columns:30px repeat(7,minmax(0,1fr));min-height:35px;border-bottom:.5px solid var(--sep);padding:4px 0;background:var(--cell)}.calendar-all-day-label{align-self:center;font-size:10px;line-height:13px;color:var(--label2);padding-right:2px;white-space:nowrap;letter-spacing:-.25px}.calendar-all-day-cell{display:flex;flex-direction:column;gap:2px;min-width:0;border-left:.5px solid var(--sep);padding:0 1px}.calendar-all-day-cell .calendar-event{position:static;width:100%;min-height:22px;padding:2px;font-size:10px;line-height:13px}.calendar-all-day-cell .event-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.calendar-frame{background:var(--cell);border-radius:12px;overflow:hidden;margin:4px 0 12px}.calendar-scroll{height:clamp(270px,calc(100svh - 345px),650px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;position:relative;padding-bottom:70px}.calendar-time-grid{height:1440px;display:grid;grid-template-columns:30px repeat(7,minmax(0,1fr));position:relative}.calendar-hours{position:relative}.calendar-hour{position:absolute;right:4px;font-size:10px;line-height:12px;color:var(--label2);transform:translateY(-50%)}.calendar-column{position:relative;min-width:0;border-left:.5px solid var(--sep);background:repeating-linear-gradient(to bottom,transparent 0,transparent 59px,var(--sep) 59px,var(--sep) 59.5px,transparent 59.5px,transparent 60px);cursor:crosshair}.calendar-event{position:absolute;display:block;min-height:18px;padding:2px 2px 1px 3px;border-radius:4px;border-left:3px solid var(--event-color,var(--accent));background:color-mix(in srgb,var(--event-color,var(--accent)) 20%,var(--cell));color:var(--label);overflow:hidden;text-align:left;font-size:11px;line-height:13px;font-weight:600;cursor:pointer}.calendar-event .event-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;white-space:normal;word-break:normal;overflow-wrap:normal;overflow:hidden;text-overflow:ellipsis}.calendar-event.long-event .event-title{-webkit-line-clamp:2}.calendar-now{position:absolute;left:0;right:0;height:1px;background:var(--danger);z-index:3;pointer-events:none}.calendar-now::before{content:"";position:absolute;left:-3px;top:-3px;width:7px;height:7px;border-radius:50%;background:var(--danger)}.calendar-add{position:fixed;z-index:21;right:max(24px,calc((100vw - 640px)/2));bottom:calc(var(--tabbar-height) + var(--tabbar-bottom) + env(safe-area-inset-bottom) + 16px);width:54px;height:54px;min-height:54px;border-radius:50%;color:#fff;background:var(--accent);box-shadow:0 3px 12px #0003}.calendar-add .icon{width:27px;height:27px}.calendar-empty{padding:36px 20px;text-align:center;background:var(--cell);border-radius:16px;margin-top:12px}.calendar-empty>svg{width:38px;height:38px;margin:0 auto 16px;color:var(--accent)}.calendar-empty h3{font-size:20px}.calendar-empty p{font-size:15px;line-height:21px;color:var(--label2)}.calendar-empty p:last-child{margin-bottom:0}.calendar-status{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;line-height:18px;color:var(--label2);min-height:26px;margin:0}.calendar-spinner{display:inline-block;width:14px;height:14px;border:1.5px solid var(--label3);border-top-color:var(--label2);border-radius:50%;animation:calendar-spin .8s linear infinite}@keyframes calendar-spin{to{transform:rotate(360deg)}}.calendar-sheet{padding-top:6px;max-height:92svh}.calendar-sheet .navbar{position:sticky;top:-6px;z-index:2;background:var(--sheet);margin:4px -4px 12px;padding:0 4px;grid-template-columns:1fr auto 1fr}.calendar-sheet .navbar h2{font-size:17px;white-space:nowrap}.calendar-sheet .navbar button{font-size:15px;min-width:0}.calendar-sheet .navbar .end-action{justify-self:end}.calendar-sheet .calendar-field{display:flex;align-items:center;gap:8px;margin:0;padding:0 16px;min-height:50px;font-weight:400;font-size:17px}.calendar-field>span{flex:none}.calendar-field input:not([type=checkbox]){background:transparent!important;text-align:right;min-width:0;padding:8px 0;flex:1;font-size:15px}.calendar-field.title-field input{text-align:left;font-size:17px}.calendar-sheet textarea{background:transparent!important;min-height:100px}.calendar-sheet .group{margin:16px 0}.calendar-sheet .switch{appearance:none;-webkit-appearance:none;width:51px;height:31px;min-width:51px;margin-left:auto;border-radius:18px;background:var(--fill-strong);position:relative;transition:background .15s;cursor:pointer}.calendar-sheet .switch::after{content:"";position:absolute;width:27px;height:27px;top:2px;left:2px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .15s}.calendar-sheet .switch:checked{background:var(--green)}.calendar-sheet .switch:checked::after{transform:translateX(20px)}.calendar-detail-title{font-size:28px!important;line-height:34px!important;text-align:left!important;margin:16px 0 8px!important;overflow-wrap:anywhere}.calendar-detail-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:17px!important;color:var(--label)!important}.calendar-agenda-row{display:flex;gap:10px;align-items:flex-start;padding:13px 12px;min-height:58px;width:100%;text-align:left;border-radius:0;color:var(--label)}.calendar-agenda-time{width:46px;flex:none;color:var(--label2);font-size:12px;line-height:18px}.calendar-agenda-copy{border-left:3px solid var(--event-color,var(--accent));padding-left:10px;min-width:0;flex:1;font-size:17px;font-weight:500;overflow-wrap:anywhere}.calendar-agenda-copy small{display:block;margin-top:3px;font-size:13px;font-weight:400}.calendar-sheet .calendar-detail-actions{margin-top:24px}.calendar-error-note{font-size:13px;color:var(--danger);margin:12px 0 0}.calendar .shell{padding-bottom:var(--root-clearance)}
+.focus-switch{margin:14px 0 18px}.now-card{padding:14px 16px;margin-bottom:12px}.now-row{display:flex;gap:12px;align-items:stretch}.now-bar{flex:none;width:4px;border-radius:2px;background:var(--event-color,var(--accent))}.now-copy{min-width:0;flex:1}.now-card .eyebrow{margin:0 0 2px;font-weight:600;color:var(--accent-text)}.now-title{font-size:20px;line-height:25px;font-weight:600;margin:0;overflow-wrap:anywhere}.now-time{font-size:15px;line-height:20px;color:var(--label2);margin:0}.now-after{font-size:15px;line-height:20px;color:var(--label2);margin:10px 0 0;padding-top:10px;border-top:.5px solid var(--sep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.now-connect{margin:0 0 12px}.now-connect .row-btn{min-height:44px}
+.tile{color:var(--label);text-decoration:none}.tile:active{opacity:.7}.widget-grid{margin-top:12px}.widget-grid .metric-value{font-size:22px;line-height:28px}.widget-grid .metric-detail{white-space:normal}.tile-orange .metric-title{color:light-dark(#C93400,#FF9F0A)}.tile-indigo .metric-title{color:light-dark(#5856D6,#7D7AFF)}.tile-blue .metric-title{color:var(--accent-text)}.tile-red .metric-title{color:#E5243B}
+.areas-list>*{position:relative}.areas-list>*+*{border-top:0}.areas-list>*+*::before{content:"";position:absolute;top:0;left:58px;right:0;height:.5px;background:var(--sep)}.area-row{min-height:56px}.area-icon{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;color:#fff;flex:none}.area-icon .icon{width:17px;height:17px}.area-next{display:block;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.area-count{font-size:17px}.home-note{margin:20px 4px 0}.tomorrow-list{margin-top:16px}
+.area-focus{margin:-12px 0 8px}.project-row{min-height:56px}.project-row .row-label{display:grid;gap:2px}.project-meta{display:block;color:var(--label2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-row.is-done .row-label{color:var(--label2);text-decoration:line-through}.add-row{color:var(--accent-text)}.add-row .icon{width:20px;height:20px}.focus-pick{width:auto!important;flex:none;min-width:0;appearance:none;-webkit-appearance:none;background:transparent!important;color:var(--label2)!important;text-align:right;padding:0 4px!important}.projects .group-footer{margin-top:8px}.project-delete{margin-top:16px}.calendar-sheet .input-cell input{font-size:17px}
+.life-wheel{margin:0 0 20px}.pill-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}.pill-card{background:var(--cell);border-radius:16px;padding:12px 14px;min-width:0}.pill-card p{margin:0}.pill-title{font-size:13px;line-height:18px;font-weight:600}.pill-green{color:light-dark(#248A3D,#30D158)}.pill-blue{color:var(--accent-text)}.pill-value{font-size:17px;line-height:22px;font-weight:600}
+.wheel-box{position:relative;width:min(100%,260px);aspect-ratio:1;margin:8px auto 0}.wheel-svg{display:block;width:100%;height:100%;overflow:visible}.petal-ghost{fill:light-dark(color-mix(in srgb,var(--c) 22%,transparent),color-mix(in srgb,var(--c) 18%,transparent))}.petal-fill{fill:var(--c)}.petal.dim{opacity:.3}.petal-glyph{color:var(--c);stroke-width:1.9}.petal-glyph.on-fill{color:#fff}.petal-num{font-size:11px;font-weight:700;fill:var(--c)}.petal-num.on-fill{fill:#fff}.petal-hit{position:absolute;inset:0;width:100%;height:100%;min-height:0;padding:0;border-radius:0;background:transparent}.petal-hit:focus-visible{outline:none;background:rgba(255,255,255,.22)}.wheel-note{font-size:15px;line-height:20px;color:var(--label2);text-align:center;margin:12px 8px 0}
+.area-rating .segmented button{min-height:36px;font-size:15px}
+.pc0{--c:light-dark(#007AFF,#0A84FF)}.pc1{--c:light-dark(#FF9500,#FF9F0A)}.pc2{--c:light-dark(#34C759,#30D158)}.pc3{--c:light-dark(#5856D6,#5E5CE6)}.pc4{--c:light-dark(#FF2D55,#FF375F)}.pc5{--c:light-dark(#32ADE6,#64D2FF)}.pc6{--c:light-dark(#AF52DE,#BF5AF2)}.pc7{--c:light-dark(#FFCC00,#FFD60A)}.area-icon{background:var(--c)}
+.area-next.is-empty{color:var(--label3)}.briefing-list{margin-top:24px}.briefing-row{text-decoration:none}.icon-tile.red{background:#E5243B}.area-link{margin-top:4px}.area-link .row-btn{text-decoration:none;color:var(--accent-text)}.done-card{display:block}.area-eyebrow{color:var(--c)!important;font-weight:600}.done-status{display:flex;align-items:center;gap:8px;margin:4px 0 8px;color:var(--label)!important;font-size:17px!important;font-weight:500}.done-check{width:22px;height:22px;color:var(--green)}.done-card button{min-height:44px;padding:0;justify-content:flex-start;margin-top:4px}
 </style>
 </head>
 <body>
@@ -49,6 +58,7 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
     let calendarAccessToken='', calendarExpires=0, calendarScript=null, calendarCachedWeek=null, calendarGeneration=0;
     let calendarConnectedBefore=false, calendarEmail='';
     try { calendarConnectedBefore=localStorage.getItem('calendar-connected')==='true'; calendarEmail=localStorage.getItem('calendar-email')||''; } catch {}
+    const todayEvents={key:'',events:[],at:0,loading:false};
     const calendarState={weekStart:calendarWeekRange(new Date()).start,selectedDay:null,events:[],loading:false,connected:false,reconnect:calendarConnectedBefore,offline:false,email:calendarEmail};
     function calendarWeekRange(date){const start=new Date(date.getFullYear(),date.getMonth(),date.getDate());start.setDate(start.getDate()-(start.getDay()+6)%7);const end=new Date(start);end.setDate(end.getDate()+7);return {start,end}}
     function calendarLoadIdentity(){
@@ -79,12 +89,12 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
       catch(error){if(generation!==calendarGeneration)return;calendarState.events=[];calendarState.offline=typeof navigator!=='undefined'&&navigator.onLine===false;if(!calendarState.offline)say(error.message)}
       finally{if(generation===calendarGeneration){calendarState.loading=false;if(view==='calendar')render()}}
     }
-    async function calendarSaveEvent(body,id){const result=await calendarRequest(id?'PATCH':'POST',id?'/'+encodeURIComponent(id):'',body);calendarCachedWeek=null;await calendarLoadWeek();return result}
-    async function calendarDeleteEvent(id){await calendarRequest('DELETE','/'+encodeURIComponent(id));calendarCachedWeek=null;await calendarLoadWeek()}
-    function calendarDisconnect(){const token=calendarAccessToken;calendarGeneration++;calendarAccessToken='';calendarExpires=0;calendarCachedWeek=null;calendarState.events=[];calendarState.connected=false;calendarState.reconnect=false;calendarState.email='';calendarConnectedBefore=false;try{localStorage.removeItem('calendar-connected');localStorage.removeItem('calendar-email')}catch{}if(token)window.google?.accounts?.oauth2?.revoke(token,()=>{});render();say('Google Kalender getrennt.')}
+    async function calendarSaveEvent(body,id){const result=await calendarRequest(id?'PATCH':'POST',id?'/'+encodeURIComponent(id):'',body);calendarCachedWeek=null;todayEvents.at=0;await calendarLoadWeek();return result}
+    async function calendarDeleteEvent(id){await calendarRequest('DELETE','/'+encodeURIComponent(id));calendarCachedWeek=null;todayEvents.at=0;await calendarLoadWeek()}
+    function calendarDisconnect(){const token=calendarAccessToken;calendarGeneration++;calendarAccessToken='';calendarExpires=0;calendarCachedWeek=null;calendarState.events=[];todayEvents.events=[];todayEvents.at=0;calendarState.connected=false;calendarState.reconnect=false;calendarState.email='';calendarConnectedBefore=false;try{localStorage.removeItem('calendar-connected');localStorage.removeItem('calendar-email')}catch{}if(token)window.google?.accounts?.oauth2?.revoke(token,()=>{});render();say('Google Kalender getrennt.')}
     const KEY = 'start-first-v1';
     const MINUTES = 10 * 60 * 1000;
-    const DEFAULT_AREAS = ['Karriere', 'Gesundheit', 'Persönliche Entwicklung'];
+    const DEFAULT_AREAS = ['Arbeit', 'Nebenprojekte', 'Gesundheit', 'Lernen', 'Privat'];
     const main = document.getElementById('main');
     const feedback = document.getElementById('feedback');
     let view = 'today', savedPlanForCalendar=null;
@@ -112,7 +122,7 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
       return typeof key === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(key) && key >= '1970-01-01' && dayKey(localDate(key)) === key;
     }
     function freshData() {
-      return {schemaVersion:1, firstDay:dayKey(), settings:{newsUrl:'', areas:[...DEFAULT_AREAS]}, days:{}};
+      return {schemaVersion:1, firstDay:dayKey(), settings:{newsUrl:'', areas:[...DEFAULT_AREAS], areaMeta:Object.fromEntries(DEFAULT_AREAS.map(a=>[a,{focus:a==='Arbeit'?'Arbeit':'Privat',next:'',goal:'',projects:[],ratings:{}}]))}, days:{}};
     }
     function validUrl(value) {
       try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol); }
@@ -122,13 +132,32 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
     function shortText(value, limit) { return typeof value === 'string' && value.length <= limit; }
     function timestamp(value) { return Number.isSafeInteger(value) && value > 0 && value <= 8640000000000000; }
     // Build a new object rather than trusting properties from an imported file.
+    function cleanAreaMeta(meta, areas) {
+      if (meta === undefined || meta === null) return {};
+      if (!plainObject(meta)) throw Error('Ungültige Lebensbereich-Details.');
+      const entries = [];
+      for (const area of areas) {
+        if (!Object.hasOwn(meta, area)) continue;
+        const m = meta[area];
+        if (!plainObject(m) || !['Arbeit','Privat'].includes(m.focus) || !shortText(m.next ?? '',120) || !shortText(m.goal ?? '',120) || !Array.isArray(m.projects ?? []) || (m.projects ?? []).length > 50) throw Error('Ungültige Lebensbereich-Details.');
+        const ids = new Set(), projects = (m.projects ?? []).map(p => {
+          if (!plainObject(p) || !shortText(p.id,40) || !p.id || ids.has(p.id) || !shortText(p.name,80) || !p.name.trim() || !['In Arbeit','Wartet','Idee','Erledigt'].includes(p.status) || !shortText(p.next ?? '',120)) throw Error('Ungültiges Projekt.');
+          ids.add(p.id); return {id:p.id, name:p.name, status:p.status, next:p.next ?? ''};
+        });
+        const rawRatings = m.ratings ?? {};
+        if (!plainObject(rawRatings) || Object.keys(rawRatings).length > 60) throw Error('Ungültige Wocheneinschätzung.');
+        const ratings = Object.fromEntries(Object.entries(rawRatings).map(([week, v]) => { if (!validDay(week) || !Number.isInteger(v) || v < 1 || v > 5) throw Error('Ungültige Wocheneinschätzung.'); return [week, v]; }));
+        entries.push([area, {focus:m.focus, next:m.next ?? '', goal:m.goal ?? '', projects, ratings}]);
+      }
+      return Object.fromEntries(entries);
+    }
     function validateData(input) {
       if (!plainObject(input) || input.schemaVersion !== 1 || !validDay(input.firstDay) || input.firstDay > dayKey()) throw Error('Nicht unterstütztes Format oder ungültiger erster Tag.');
       const s = input.settings;
       if (!plainObject(s) || !shortText(s.newsUrl,2048) || (s.newsUrl && !validUrl(s.newsUrl))) throw Error('Die Nachrichten-URL muss http oder https verwenden.');
       if (!Array.isArray(s.areas) || s.areas.length < 1 || s.areas.length > 20 || s.areas.some(a => !shortText(a,60) || !a.trim() || a !== a.trim()) || new Set(s.areas).size !== s.areas.length) throw Error('Gib 1–20 unterschiedliche Lebensbereiche mit jeweils bis zu 60 Zeichen ein.');
       if (!plainObject(input.days)) throw Error('Ungültige Tageseinträge.');
-      const clean = {schemaVersion:1, firstDay:input.firstDay, settings:{newsUrl:s.newsUrl, areas:[...s.areas]}, days:{}};
+      const clean = {schemaVersion:1, firstDay:input.firstDay, settings:{newsUrl:s.newsUrl, areas:[...s.areas], areaMeta:cleanAreaMeta(s.areaMeta,s.areas)}, days:{}};
       let active = 0;
       for (const [key, d] of Object.entries(input.days)) {
         if (!validDay(key) || key < input.firstDay || key > shiftDay(dayKey(),1) || !plainObject(d)) throw Error('Ungültiges Eintragsdatum.');
@@ -223,7 +252,7 @@ textarea{resize:none;overflow:hidden}.segmented button{white-space:nowrap}.appea
       select.value = value; parent.append(caption,select); return select;
     }
     function say(message) { feedback.textContent = message; }
-    function go(next) { if(next!==view){settingsSub=null;selectedDay=null;areasEditing=false} view = next; say(''); render(); if(next==='calendar'&&calendarState.connected)calendarLoadWeek(); main.querySelector('h2')?.focus(); }
+    function go(next) { areaOpen=null; if(next!==view){settingsSub=null;selectedDay=null;areasEditing=false} view = next; say(''); render(); if(next==='calendar'&&calendarState.connected)calendarLoadWeek(); main.querySelector('h2')?.focus(); }
 
 const THEME_KEY='start-theme', THEMES=['dark','light','system'];
 function readTheme(){try{const v=localStorage.getItem(THEME_KEY);return THEMES.includes(v)?v:'dark'}catch{return 'dark'}}
@@ -240,6 +269,8 @@ function glyph(name,cls='icon'){const svg=svgNode('svg',{viewBox:'0 0 24 24',fil
  history:[['path',{d:'M4 7a9 9 0 1 1-1 8M4 3v5h5M12 7v5l3 2'}]],
  calendar:[['rect',{x:3,y:5,width:18,height:17,rx:3}],['path',{d:'M7 2v6m10-6v6M3 11h18'}]],
  gear:[['path',{d:'m9 3 .6-1h4.8l.6 3 2 .9 2.7-1.1 2.4 4.2-2.1 1.9v2.2l2.1 1.9-2.4 4.2-2.7-1.1-2 .9-.6 3H9.6l-.6-3-2-.9-2.7 1.1-2.4-4.2L4 13.1v-2.2L1.9 9l2.4-4.2L7 5.9l2-.9Z'}],['circle',{cx:12,cy:12,r:3}]],
+ briefcase:[['rect',{x:3,y:7,width:18,height:13,rx:2}],['path',{d:'M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18'}]],heart:[['path',{d:'M12 20s-8-4.6-8-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 8 2.5C20 15.4 12 20 12 20Z'}]],house:[['path',{d:'M3 11 12 3l9 8M5 9.5V21h5v-6h4v6h5V9.5'}]],target:[['circle',{cx:12,cy:12,r:9}],['circle',{cx:12,cy:12,r:5}],['circle',{cx:12,cy:12,r:1}]],star:[['path',{d:'m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3Z'}]],
+ news:[['rect',{x:4,y:3,width:16,height:18,rx:2.5}],['path',{d:'M8 8h8M8 12h8M8 16h5'}]],check:[['circle',{cx:12,cy:12,r:10}],['path',{d:'m7.5 12.5 3 3 6-7'}]],
  chevron:[['path',{d:'m9 4 8 8-8 8'}]],close:[['path',{d:'m6 6 12 12M18 6 6 18'}]],book:[['path',{d:'M12 5c-3-2-6-2-10-1v15c4-1 7-1 10 1m0-15c3-2 6-2 10-1v15c-4-1-7-1-10 1V5Z'}]]};for(const [tag,attrs] of shapes[name]||shapes.info)svg.append(svgNode(tag,attrs));return svg}
 function dayCount(value){return Number(value)===1?'1 Tag':String(value)+' Tage'}
 function dayUnit(value){return Number(value)===1?'Tag':'Tage'}
@@ -298,13 +329,6 @@ function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h
       }
       return card;
     }
-    function homeMetrics(){
-      const grid=node('div',undefined,'tile-grid'),entries=Object.entries(data.days),started=entries.filter(([,d])=>d.endTime!==null),completed=entries.filter(([,d])=>d.status==='finished');
-      const monday=shiftDay(dayKey(),-((new Date().getDay()+6)%7)),week=started.filter(([key])=>key>=monday&&key<=dayKey()).length;
-      grid.append(metric('Serie',String(streak().count),dayUnit(streak().count)),metric('Diese Woche',week+'/7','Tage begonnen'));
-      if(started.length){const [key,d]=started.sort(([a],[b])=>a.localeCompare(b)).at(-1);grid.append(metric('Zuletzt begonnen',localDate(key).toLocaleDateString('de-AT',{day:'numeric',month:'short'}),new Date(d.endTime-MINUTES).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'}),true))}
-      grid.append(metric('Zehn-Minuten-Blöcke',String(completed.length),'abgeschlossen'));main.append(grid,node('p','Ruhetage und Krankheitstage zählen nicht für deine Serie.','group-footer'));
-    }
     function dayMenu(parent,key){
       const menu=node('details',undefined,'day-menu');menu.append(node('summary','Heute markieren als …'));const list=node('div',undefined,'list');
       const skip=node('div',undefined,'row-stack');addSkip(skip,key);list.append(skip);
@@ -314,22 +338,187 @@ function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h
     function timerRing(d){
       const ring=node('div',undefined,'rest-ring'),svg=svgNode('svg',{viewBox:'0 0 100 100','aria-hidden':'true',focusable:'false'}),arc=svgNode('circle',{cx:50,cy:50,r:46,pathLength:1,'stroke-dasharray':'1 1','stroke-dashoffset':1-Math.max(0,Math.min(1,(d.endTime-Date.now())/MINUTES)),class:'ring-progress'});arc.id='countdown-progress';svg.append(svgNode('circle',{cx:50,cy:50,r:46,class:'ring-track'}),arc);const timer=node('p',remaining(d),'timer');timer.id='countdown';timer.setAttribute('role','timer');timer.setAttribute('aria-label','Verbleibende Zeit');ring.append(svg,timer);return ring;
     }
-    function showToday() {
-      const today=dayKey();main.append(node('p',dateLabel(today),'date-eyebrow'));title('Heute');settingsShortcut('Einstellungen');
+    // ---- Fokus (Alles / Arbeit / Privat) ----
+    const FOCUS_KEY='start-focus', FOCUS_OPTIONS=['Alles','Arbeit','Privat'], AREA_FOCI=['Arbeit','Privat'], PROJECT_STATUS=['In Arbeit','Wartet','Idee','Erledigt'];
+    let areaOpen=null, lastHomeSignature='';
+    function autoFocus(date=new Date()){const day=date.getDay(),hour=date.getHours();return day>=1&&day<=5&&hour>=8&&hour<17?'Arbeit':'Privat'}
+    function currentFocus(date=new Date()){try{const saved=JSON.parse(localStorage.getItem(FOCUS_KEY)||'null');if(saved&&saved.date===dayKey(date)&&FOCUS_OPTIONS.includes(saved.value))return saved.value}catch{}return autoFocus(date)}
+    function setFocus(value){if(!FOCUS_OPTIONS.includes(value))return;try{localStorage.setItem(FOCUS_KEY,JSON.stringify({date:dayKey(),value}))}catch{}render()}
+    // ---- Lebensbereiche: Fokus, nächster Schritt, Ziel, Projekte (additiv in settings.areaMeta) ----
+    function areaMetaOf(area){const all=data.settings.areaMeta;return all&&Object.hasOwn(all,area)?all[area]:null}
+    function areaFocus(area){const m=areaMetaOf(area);return AREA_FOCI.includes(m?.focus)?m.focus:(area==='Arbeit'?'Arbeit':'Privat')}
+    function areaInfo(area){const m=areaMetaOf(area);return {focus:areaFocus(area),next:m?.next||'',goal:m?.goal||'',projects:Array.isArray(m?.projects)?m.projects:[],ratings:plainObject(m?.ratings)?m.ratings:{}}}
+    function mutateMeta(change){const previous=data.settings.areaMeta;change();if(!save()){data.settings.areaMeta=previous;say('Änderung nicht gespeichert.');return false}return true}
+    function writeAreaInfo(area,patch){return mutateMeta(()=>{data.settings.areaMeta={...data.settings.areaMeta,[area]:{...areaInfo(area),...patch}}})}
+    function projectId(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+    function projectAdd(area,input){const name=String(input?.name||'').trim().slice(0,80),list=areaInfo(area).projects;if(!name||list.length>=50||!data.settings.areas.includes(area))return null;const item={id:projectId(),name,status:PROJECT_STATUS.includes(input.status)?input.status:'In Arbeit',next:String(input.next||'').trim().slice(0,120)};return writeAreaInfo(area,{projects:[...list,item]})?item:null}
+    function projectUpdate(area,id,patch){const list=areaInfo(area).projects,old=list.find(p=>p.id===id);if(!old)return false;const name=patch.name===undefined?old.name:String(patch.name).trim().slice(0,80);if(!name)return false;const status=patch.status===undefined?old.status:patch.status;if(!PROJECT_STATUS.includes(status))return false;const next=patch.next===undefined?old.next:String(patch.next).trim().slice(0,120);return writeAreaInfo(area,{projects:list.map(p=>p.id===id?{id,name,status,next}:p)})}
+    function projectDelete(area,id){const list=areaInfo(area).projects;if(!list.some(p=>p.id===id))return false;return writeAreaInfo(area,{projects:list.filter(p=>p.id!==id)})}
+    function openCount(area){const today=dayKey();return areaInfo(area).projects.filter(p=>p.status!=='Erledigt').length+Object.entries(data.days).filter(([key,d])=>d.area===area&&d.status==='planned'&&key>=today).length}
+    function areaSettings(list,from,to){const old=data.settings.areaMeta||{};const entries=list.map(a=>{const source=from!==undefined&&a===to?from:a;if(Object.hasOwn(old,source))return [a,old[source]];return from!==undefined&&a===to?[a,{focus:areaFocus(from),next:'',goal:'',projects:[],ratings:{}}]:null}).filter(Boolean);return {...data.settings,areas:list,areaMeta:Object.fromEntries(entries)}}
+    // ---- Lesen fremder Daten (nur lesend, nie schreiben) ----
+    function readExternal(key){try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null}catch{return null}}
+    function gymSummary(now=new Date()){
+      const g=readExternal('gym-log-v1');if(!plainObject(g)||!Array.isArray(g.sessions))return null;
+      const ok=g.sessions.filter(s=>plainObject(s)&&['upper','lower'].includes(s.type)&&['active','completed'].includes(s.status)&&validDay(s.date));
+      if(!ok.length)return null;
+      const done=ok.filter(s=>s.status==='completed').sort((a,b)=>b.date.localeCompare(a.date)||(Number(b.startTime)||0)-(Number(a.startTime)||0)),active=ok.find(s=>s.status==='active')||null,last=done[0]||null;
+      const today=dayKey(now),monday=shiftDay(today,-((now.getDay()+6)%7));let sets=0;
+      for(const s of ok){if(s.date<monday||s.date>today||!Array.isArray(s.exercises))continue;for(const e of s.exercises)if(plainObject(e)&&Array.isArray(e.sets))for(const x of e.sets)if(plainObject(x)&&x.status==='completed')sets++}
+      const type=active?active.type:(last?(last.type==='upper'?'lower':'upper'):'upper');
+      return {active:Boolean(active),doneToday:Boolean(last&&last.date===today),type,label:type==='upper'?'Oberkörper':'Unterkörper',days:last?Math.max(0,Math.round((localDate(today)-localDate(last.date))/86400000)):null,sets};
+    }
+    function learnSummary(now=new Date()){
+      const d=readExternal('vwl-arena-v1');if(!plainObject(d)||!Array.isArray(d.packs)||!Array.isArray(d.attempts)||!Array.isArray(d.rounds)||!d.packs.length)return null;
+      const today=dayKey(now),concept=new Map(),per=new Map();
+      for(const p of d.packs){if(!plainObject(p)||!Array.isArray(p.questions))continue;for(const q of p.questions)if(plainObject(q)&&typeof q.id==='string'&&(q.conceptId??q.concept)!==undefined)concept.set(q.id,q.conceptId??q.concept)}
+      for(const a of d.attempts){if(!plainObject(a)||a.skipped||!validDay(a.date)||!concept.has(a.qid))continue;const c=concept.get(a.qid);if(!per.has(c))per.set(c,[]);per.get(c).push(a)}
+      let due=0;
+      for(const list of per.values()){
+        if(list.some(a=>a.date===today))continue;list.sort((a,b)=>(Number(a.at)||0)-(Number(b.at)||0));let stage=0,when='',lastDay='';
+        for(const a of list){if(a.assisted){when=shiftDay(a.date,1);continue}if(a.base===10){if(lastDay!==a.date)stage=Math.min(stage+1,4);when=shiftDay(a.date,[1,3,7,21][Math.max(0,stage-1)]);lastDay=a.date}else{stage=0;when=shiftDay(a.date,1);lastDay=a.date}}
+        if(when&&when<=today)due++;
+      }
+      const days=[...new Set(d.rounds.filter(r=>plainObject(r)&&validDay(r.date)).map(r=>r.date))].sort();let streak=0,prev=null;
+      for(const day of days){streak=prev&&day<=shiftDay(prev,2)?streak+1:1;prev=day}if(prev&&today>shiftDay(prev,2))streak=0;
+      return {due,streak};
+    }
+    // ---- Jetzt / Als Nächstes ----
+    function nextEvents(events,now=new Date()){
+      const list=(Array.isArray(events)?events:[]).filter(e=>e&&e.status!=='cancelled'&&e.start?.dateTime&&e.end?.dateTime).map(e=>({event:e,a:new Date(e.start.dateTime),b:new Date(e.end.dateTime)})).filter(x=>Number.isFinite(x.a.getTime())&&Number.isFinite(x.b.getTime())&&x.b>x.a&&x.b>now).sort((x,y)=>x.a-y.a);
+      const current=list.find(x=>x.a<=now)||null;return {current:current?current.event:null,upcoming:list.filter(x=>x.a>now).map(x=>x.event)};
+    }
+    function calendarTokenValid(){return Boolean(calendarState.connected&&calendarAccessToken&&Date.now()<calendarExpires)}
+    function loadTodayEvents(){
+      if(!calendarTokenValid()||todayEvents.loading)return;const key=dayKey();if(todayEvents.key===key&&Date.now()-todayEvents.at<300000)return;
+      todayEvents.loading=true;const begin=localDate(key);begin.setHours(0,0,0,0);const end=new Date(begin);end.setDate(end.getDate()+1);
+      const query=new URLSearchParams({timeMin:begin.toISOString(),timeMax:end.toISOString(),singleEvents:'true',orderBy:'startTime'});
+      Promise.resolve().then(()=>calendarRequest('GET','?'+query.toString())).then(r=>{todayEvents.events=Array.isArray(r?.items)?r.items:[]}).catch(()=>{todayEvents.events=[]}).then(()=>{todayEvents.key=key;todayEvents.at=Date.now();todayEvents.loading=false;if(view==='today'&&!areaOpen)render()});
+    }
+    function homeSignature(){if(view!=='today'||areaOpen)return '';const e=nextEvents(todayEvents.events);return currentFocus()+'|'+(e.current?.id||'')+'|'+(e.upcoming[0]?.id||'')}
+    function clock(value){return new Date(value).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})}
+    function nowCard(){
+      if(!calendarTokenValid()){const list=node('div',undefined,'list now-connect'),row=rowAction('Kalender verbinden',()=>go('calendar'),'calendar');row.children[0].className='icon-tile blue';list.append(row);main.append(list);return}
+      loadTodayEvents();const e=nextEvents(todayEvents.events),first=e.current||e.upcoming[0];if(!first)return;const after=e.current?e.upcoming[0]:e.upcoming[1];
+      const card=node('section',undefined,'card now-card'),row=node('div',undefined,'now-row'),bar=node('span',undefined,'now-bar'),copy=node('div',undefined,'now-copy');bar.style.setProperty('--event-color',calendarColor(first));bar.setAttribute('aria-hidden','true');
+      copy.append(node('p',e.current?'Jetzt':'Als Nächstes','eyebrow'),node('h3',calendarEventLabel(first),'now-title'),node('p',clock(first.start.dateTime)+' – '+clock(first.end.dateTime),'now-time'));row.append(bar,copy);card.append(row);
+      if(after)card.append(node('p','Danach · '+clock(after.start.dateTime)+' '+calendarEventLabel(after),'now-after'));main.append(card);
+    }
+    // ---- Heute ----
+    function focusControl(focus){
+      const group=node('div',undefined,'segmented focus-switch');group.setAttribute('role','group');group.setAttribute('aria-label','Fokus');
+      for(const option of FOCUS_OPTIONS){const b=button(option,()=>setFocus(option));b.setAttribute('aria-pressed',String(focus===option));group.append(b)}main.append(group);
+    }
+    function heroSection(today,focus){
       const running=Object.entries(data.days).find(([,d])=>d.status==='running');
       if(running){const [key,d]=running,card=node('section',undefined,'card timer-screen');if(key!==today)card.append(node('p','Begonnen am ' +dateLabel(key),'eyebrow'));summary(card,d);card.append(timerRing(d),node('p','Bleib bei diesem einen Ergebnis.','muted'),node('p','Der Timer läuft weiter, wenn du diese Seite schließt.','small muted'));addSkip(card,key);main.append(card);return}
       const d=data.days[today];
-      if(d?.status==='finished')main.append(finishCard(today,d));
-      else if(d&&['rest','sick','skipped'].includes(d.status)){const card=node('section',undefined,'card hero');card.append(node('h3',d.status==='rest'?'Ruhetag':d.status==='sick'?'Krankheitstag':'Ausgelassen'));summary(card,d);card.append(node('p',d.status==='skipped'?'Block nicht erledigt. Nachrichten zuerst geöffnet: '+(d.newsOpenedFirst?'Ja.':'Nein.'):'Dieser Tag verlängert oder unterbricht deine Serie nicht.'));main.append(card)}
-      else{
-        const card=node('section',undefined,'card hero');
-        if(d){summary(card,d);let tiny;if(d.tiny){const label=node('label',undefined,'check');tiny=node('input');tiny.type='checkbox';label.append(tiny,document.createTextNode('Mini-Version verwenden: '+d.tiny));card.append(label)}card.append(node('p','Zehn konzentrierte Minuten. Ein sichtbares Ergebnis.'),button('10 Minuten starten',()=>{reconcile();if(data.days[today]?.status!=='planned'||dayKey()!==today||Object.values(data.days).some(x=>x.status==='running')){render();return}d.usedTiny=Boolean(tiny?.checked);d.endTime=Date.now()+MINUTES;d.status='running';save();render()},true))}
-        else{card.append(node('h3','Was ist sichtbar, wenn du fertig bist?','empty-question'),node('p','Wähle ein Ergebnis für heute und nimm dir dafür zehn Minuten.'),button('Heute planen',()=>go('plan'),true));const previous=Object.keys(data.days).filter(key=>key<today&&data.days[key].status==='planned').sort().pop();if(previous){const old=data.days[previous];card.append(node('p','Offener Plan vom ' +dateLabel(previous)+': '+old.result,'notice result'),button('Diesen Plan heute verwenden',()=>{if(dayKey()!==today||data.days[today]){render();return}data.days[today]=record({result:old.result,area:old.area,tiny:old.tiny});save();render()}))}}
-        dayMenu(card,today);main.append(card);
-      }
-      homeMetrics();
+      const foreign=Boolean(d&&focus!=='Alles'&&areaFocus(d.area)!==focus);
+      if(foreign){const card=node('section',undefined,'card hero');card.append(node('h3',focus==='Arbeit'?'Kein Arbeitsblock für heute':'Kein privater Block für heute','empty-question'),node('p','Wähle ein Ergebnis für diesen Bereich und nimm dir dafür zehn Minuten.'),button('Heute planen',()=>go('plan'),true));main.append(card);return}
+      if(d?.status==='finished'&&d.outcome===null){main.append(finishCard(today,d));return}
+      if(d?.status==='finished'){const card=node('section',undefined,'card hero done-card'),idx=Math.max(0,data.settings.areas.indexOf(d.area)),status=node('p',undefined,'done-status'),check=glyph('check','done-check');status.append(check,document.createTextNode('Erledigt'));card.append(node('p',d.area,'eyebrow area-eyebrow pc'+(idx%AREA_COLOR_COUNT)),node('h3',d.result),status,button('Morgen planen',()=>go('plan')));main.append(card);return}
+      if(d&&['rest','sick','skipped'].includes(d.status)){const card=node('section',undefined,'card hero');card.append(node('h3',d.status==='rest'?'Ruhetag':d.status==='sick'?'Krankheitstag':'Ausgelassen'));summary(card,d);card.append(node('p',d.status==='skipped'?'Block nicht erledigt. Nachrichten zuerst geöffnet: '+(d.newsOpenedFirst?'Ja.':'Nein.'):'Dieser Tag verlängert oder unterbricht deine Serie nicht.'));main.append(card);return}
+      const card=node('section',undefined,'card hero');
+      if(d){summary(card,d);let tiny;if(d.tiny){const label=node('label',undefined,'check');tiny=node('input');tiny.type='checkbox';label.append(tiny,document.createTextNode('Mini-Version verwenden: '+d.tiny));card.append(label)}card.append(node('p','Zehn konzentrierte Minuten. Ein sichtbares Ergebnis.'),button('10 Minuten starten',()=>{reconcile();if(data.days[today]?.status!=='planned'||dayKey()!==today||Object.values(data.days).some(x=>x.status==='running')){render();return}d.usedTiny=Boolean(tiny?.checked);d.endTime=Date.now()+MINUTES;d.status='running';save();render()},true))}
+      else{card.append(node('h3','Was ist sichtbar, wenn du fertig bist?','empty-question'),node('p','Wähle ein Ergebnis für heute und nimm dir dafür zehn Minuten.'),button('Heute planen',()=>go('plan'),true));const previous=Object.keys(data.days).filter(key=>key<today&&data.days[key].status==='planned').sort().pop();if(previous){const old=data.days[previous];card.append(node('p','Offener Plan vom ' +dateLabel(previous)+': '+old.result,'notice result'),button('Diesen Plan heute verwenden',()=>{if(dayKey()!==today||data.days[today]){render();return}data.days[today]=record({result:old.result,area:old.area,tiny:old.tiny});save();render()}))}}
+      dayMenu(card,today);main.append(card);
+    }
+    function ago(days){return days===0?'heute':days===1?'gestern':'vor '+days+' Tagen'}
+    const AREA_COLOR_COUNT=8;
+
+    // ---- Lebensrad: echte Wochenaktivität je Lebensbereich ----
+    function weekRange(now=new Date()){const start=shiftDay(dayKey(now),-((now.getDay()+6)%7));return [start,shiftDay(start,6)]}
+    function gymWeekSessions(now=new Date()){const g=readExternal('gym-log-v1');if(!plainObject(g)||!Array.isArray(g.sessions))return 0;const [a,b]=weekRange(now);return g.sessions.filter(s=>plainObject(s)&&s.status==='completed'&&validDay(s.date)&&s.date>=a&&s.date<=b).length}
+    function learnWeekRounds(now=new Date()){const d=readExternal('vwl-arena-v1');if(!plainObject(d)||!Array.isArray(d.rounds))return 0;const [a,b]=weekRange(now);return d.rounds.filter(r=>plainObject(r)&&validDay(r.date)&&r.date>=a&&r.date<=b).length}
+    function weekBlocks(area,now=new Date()){const [a,b]=weekRange(now);return Object.entries(data.days).filter(([key,d])=>key>=a&&key<=b&&d.endTime!==null&&(area===undefined||d.area===area)).length}
+    function weekActivity(area,now=new Date()){const blocks=weekBlocks(area,now);let extra=0;if(area==='Gesundheit')extra=gymWeekSessions(now);if(area==='Lernen')extra=learnWeekRounds(now);return {blocks,extra,count:blocks+extra}}
+    function ratingOf(area,now=new Date()){const v=areaInfo(area).ratings[weekRange(now)[0]];return Number.isInteger(v)&&v>=1&&v<=5?v:null}
+    function setRating(area,value,now=new Date()){const week=weekRange(now)[0],cur={...areaInfo(area).ratings};if(value===null||cur[week]===value)delete cur[week];else if(Number.isInteger(value)&&value>=1&&value<=5)cur[week]=value;else return false;const keep=Object.keys(cur).sort().slice(-12);return writeAreaInfo(area,{ratings:Object.fromEntries(keep.map(k=>[k,cur[k]]))})}
+    function joinNames(list){return list.length<3?list.join(' und '):list.slice(0,-1).join(', ')+' und '+list.at(-1)}
+    function wheelSummary(items){
+      const active=items.filter(x=>x.count>0),idle=items.filter(x=>x.count===0);if(!items.length)return '';
+      if(!active.length)return 'Diese Woche gab es noch keine Aktivität.';
+      const max=Math.max(...active.map(x=>x.count)),top=active.filter(x=>x.count===max).slice(0,2).map(x=>x.area),many=top.length>1;
+      let text=max>=2?joinNames(top)+(many?' laufen':' läuft')+' gut':joinNames(top)+(many?' waren':' war')+' diese Woche aktiv';
+      if(idle.length)text+='; '+(idle.length<=2?joinNames(idle.map(x=>x.area)):idle.slice(0,2).map(x=>x.area).join(', ')+' u. a.')+' noch ohne Aktivität';
+      return text+'.';
+    }
+    function petalLabel(item){return item.area+': '+item.count+(item.count===1?' Aktivität':' Aktivitäten')+' diese Woche'+(item.rating?', Selbsteinschätzung '+item.rating+' von 5':'')}
+    function petalShape(i,n,size=260){
+      // One petal pointing straight up; every other petal is an exact rotated copy (SVG rotate for drawing, rotated points for the hit area).
+      const c=size/2,ri=24,ro=c-2,gap=7,step=Math.PI*2/n,th=-Math.PI/2,rot=step*i;
+      const edge=(s,r)=>{const phi=th+s*step/2,bx=Math.cos(phi),by=Math.sin(phi);return [c+r*bx+s*by*gap/2,c+r*by-s*bx*gap/2]};
+      const iL=edge(-1,ri),oL=edge(-1,ro),oR=edge(1,ro),iR=edge(1,ri),a1=Math.atan2(oL[1]-c,oL[0]-c);let da=Math.atan2(oR[1]-c,oR[0]-c)-a1;while(da<0)da+=Math.PI*2;
+      const mid=[1,2,3].map(k=>[c+ro*Math.cos(a1+da*k/4),c+ro*Math.sin(a1+da*k/4)]),pts=[iL,oL,...mid,oR,iR],radii=[10,40,60,60,60,40,10],f=v=>v.toFixed(1);let d='';
+      pts.forEach((cur,k)=>{const prev=pts[(k+pts.length-1)%pts.length],next=pts[(k+1)%pts.length],u=q=>{const dx=q[0]-cur[0],dy=q[1]-cur[1],l=Math.hypot(dx,dy)||1;return [dx/l,dy/l,l]},d1=u(prev),d2=u(next),r=Math.min(radii[k],d1[2]/2,d2[2]/2);d+=(k?'L':'M')+f(cur[0]+d1[0]*r)+' '+f(cur[1]+d1[1]*r)+'Q'+f(cur[0])+' '+f(cur[1])+' '+f(cur[0]+d2[0]*r)+' '+f(cur[1]+d2[1]*r)});
+      const turn=q=>{const x=q[0]-c,y=q[1]-c;return [c+x*Math.cos(rot)-y*Math.sin(rot),c+x*Math.sin(rot)+y*Math.cos(rot)]},g=turn([c,c-ro*.66]);
+      return {d:d+'Z',ro,center:c,rotate:(rot*180/Math.PI).toFixed(3),glyph:g,polygon:'polygon('+pts.map(turn).map(q=>f(q[0]/size*100)+'% '+f(q[1]/size*100)+'%').join(',')+')'};
+    }
+    function activityOpacity(count){return count<=0?0:count===1?.7:count<=3?.85:1}
+    function lifeWheel(focus){
+      const areas=data.settings.areas.slice(0,8),n=areas.length;if(!n)return;
+      const items=areas.map((area,i)=>({area,i,...weekActivity(area),rating:ratingOf(area)})),activeCount=items.filter(x=>x.count>0).length,blocks=weekBlocks();
+      const section=node('section',undefined,'life-wheel'),pills=node('div',undefined,'pill-grid'),a=node('div',undefined,'pill-card'),b=node('div',undefined,'pill-card');
+      a.append(node('p','Übersicht','pill-title pill-green'),node('p',activeCount+' von '+n+' aktiv','pill-value'));b.append(node('p','Diese Woche','pill-title pill-blue'),node('p',blocks+(blocks===1?' Block':' Blöcke'),'pill-value'));pills.append(a,b);section.append(pills);
+      const box=node('div',undefined,'wheel-box'),svg=svgNode('svg',{viewBox:'0 0 260 260',class:'wheel-svg','aria-hidden':'true',focusable:'false'}),hits=[];
+      items.forEach(item=>{
+        const shape=petalShape(item.i,n),dim=focus!=='Alles'&&areaFocus(item.area)!==focus,opacity=activityOpacity(item.count),g=svgNode('g',{class:'petal pc'+(item.i%AREA_COLOR_COUNT)+(dim?' dim':'')}),body=svgNode('g',{transform:'rotate('+shape.rotate+' '+shape.center+' '+shape.center+')'});
+        body.append(opacity>0?svgNode('path',{d:shape.d,class:'petal-fill',opacity}):svgNode('path',{d:shape.d,class:'petal-ghost'}));g.append(body);
+        const gl=glyph(areaGlyphName(item.area),'petal-glyph'+(opacity>0?' on-fill':''));gl.setAttribute('x',(shape.glyph[0]-12).toFixed(1));gl.setAttribute('y',(shape.glyph[1]-(item.rating?18:12)).toFixed(1));gl.setAttribute('width',24);gl.setAttribute('height',24);g.append(gl);
+        if(item.rating){const num=svgNode('text',{x:shape.glyph[0].toFixed(1),y:(shape.glyph[1]+18).toFixed(1),'text-anchor':'middle',class:'petal-num'+(opacity>0?' on-fill':'')});num.textContent=String(item.rating);g.append(num)}
+        svg.append(g);const hit=button('',()=>{areaOpen=item.area;render();main.querySelector('h2')?.focus()});hit.className='petal-hit';hit.style.setProperty('clip-path',shape.polygon);hit.setAttribute('aria-label',petalLabel(item));hits.push(hit);
+      });
+      box.append(svg,...hits);section.append(box,node('p',wheelSummary(items),'wheel-note'));main.append(section);
+    }
+    function areaGlyphName(area){const n=area.toLowerCase();return n.includes('arbeit')||n.includes('karriere')||n.includes('beruf')?'briefcase':n.includes('gesund')||n.includes('sport')||n.includes('training')?'heart':n.includes('lern')||n.includes('bildung')||n.includes('entwicklung')?'book':n.includes('privat')||n.includes('familie')||n.includes('haus')?'house':n.includes('projekt')?'target':'star'}
+    function areaIcon(area){const i=Math.max(0,data.settings.areas.indexOf(area)),dot=node('span',undefined,'area-icon');dot.className='area-icon pc'+(i%AREA_COLOR_COUNT);dot.setAttribute('aria-hidden','true');dot.append(glyph(areaGlyphName(area)));return dot}
+    function areaDataLine(area){
+      if(area==='Gesundheit'){const g=gymSummary();if(!g)return '';if(g.active)return 'Läuft: '+g.label;if(g.doneToday)return 'Heute erledigt';return g.label+(g.days===null?'':' · zuletzt '+ago(g.days))}
+      if(area==='Lernen'){const l=learnSummary();if(!l)return '';return (l.due?l.due+(l.due===1?' Wiederholung':' Wiederholungen')+' fällig':'Keine Wiederholung fällig')+' · Serie '+dayCount(l.streak)}
+      return '';
+    }
+    function briefingRow(){const list=node('div',undefined,'list briefing-list'),row=node('a',undefined,'row-btn briefing-row'),tileIcon=node('span',undefined,'icon-tile red');tileIcon.append(glyph('news'));row.href='https://mail.google.com/mail/u/0/#search/subject%3AVWL-Morgenbriefing+newer_than%3A1d';row.target='_blank';row.rel='noopener noreferrer';row.append(tileIcon,node('span','Heutiges Briefing','row-label'),glyph('chevron','chevron'));list.append(row);main.append(list)}
+    function areasSection(focus){
+      main.append(node('h3','Bereiche','section-title'));lifeWheel(focus);const areas=data.settings.areas.filter(a=>focus==='Alles'||areaFocus(a)===focus);
+      if(!areas.length){main.append(node('p','Kein Lebensbereich ist diesem Fokus zugeordnet. Das änderst du unter Einstellungen → Lebensbereiche.','group-footer'));return}
+      const list=node('div',undefined,'list areas-list');
+      for(const area of areas){const info=areaInfo(area),row=button('',()=>{areaOpen=area;render();main.querySelector('h2')?.focus()});row.className='row-btn area-row';const copy=node('span',area,'row-label'),line=info.next||areaDataLine(area);copy.append(node('small',line||'Kein nächster Schritt','area-next'+(line?'':' is-empty')));const count=openCount(area);row.setAttribute('aria-label',area+(line?', '+line:'')+(count?', '+count+' offen':''));row.append(areaIcon(area),copy);if(count)row.append(node('span',String(count),'row-detail area-count'));row.append(glyph('chevron','chevron'));list.append(row)}
+      main.append(list);
+    }
+    function showToday() {
+      if(areaOpen&&data.settings.areas.includes(areaOpen)){showArea(areaOpen);return}areaOpen=null;
+      const today=dayKey(),focus=currentFocus();main.append(node('p',dateLabel(today),'date-eyebrow'));title('Heute');settingsShortcut('Einstellungen');focusControl(focus);
+      nowCard();heroSection(today,focus);
       const pending=Object.entries(data.days).filter(([key,d])=>key<today&&d.status==='finished'&&d.outcome===null).sort(([a],[b])=>a.localeCompare(b));if(pending.length){main.append(node('h3','Rückblicke','section-title'));for(const [key,d] of pending)main.append(finishCard(key,d))}
-      if(data.days[today]){const list=node('div',undefined,'list');list.append(rowAction('Morgen planen',()=>go('plan'),'book'));main.append(list)}
+      areasSection(focus);if(focus!=='Arbeit')briefingRow();
+      main.append(node('p','Arbeitsinhalte nur als allgemeine Stichworte – keine vertraulichen Daten.','group-footer home-note'));lastHomeSignature=homeSignature();
+    }
+    function groupedLine(parent,heading,id,placeholder,value,max,commit){
+      const group=node('section',undefined,'group'),caption=node('h3',heading,'group-header'),cell=node('div',undefined,'list input-cell'),input=node('input');caption.id=id+'-label';input.id=id;input.value=value;input.maxLength=max;input.placeholder=placeholder;input.setAttribute('aria-labelledby',caption.id);
+      input.addEventListener('change',()=>{const v=input.value.trim().slice(0,max);input.value=commit(v)?v:value});cell.append(input);group.append(caption,cell);parent.append(group);return input;
+    }
+    function showArea(area){
+      const info=areaInfo(area),back=button('‹ Heute',()=>{areaOpen=null;render();main.querySelector('h2')?.focus()}),bar=node('div',undefined,'navbar');bar.append(back);main.append(bar);title(area);main.append(node('p','Fokus: '+info.focus,'small muted area-focus'));
+      if(area==='Gesundheit'||area==='Lernen'){const group=node('div',undefined,'list group area-link'),row=node('a',undefined,'row-btn'),label=area==='Gesundheit'?'Training öffnen':'Lernrunde starten';row.href=area==='Gesundheit'?'./gym.html':'./learn.html';row.append(node('span',label,'row-label'),glyph('chevron','chevron'));group.append(row);main.append(group)}
+      {const rating=ratingOf(area),group=node('section',undefined,'group area-rating'),seg=node('div',undefined,'segmented');group.append(node('h3','Diese Woche','group-header'));seg.setAttribute('role','group');seg.setAttribute('aria-label','Selbsteinschätzung diese Woche, 1 bis 5');for(let v=1;v<=5;v++){const b=button(String(v),()=>{setRating(area,v);render()});b.setAttribute('aria-pressed',String(rating===v));seg.append(b)}const act=weekActivity(area);group.append(seg,node('p',act.count+(act.count===1?' Aktivität':' Aktivitäten')+' in dieser Woche. Deine Einschätzung (1 bis 5) ist freiwillig; tippe erneut, um sie zu löschen.','group-footer'));main.append(group)}
+      groupedLine(main,'Nächster Schritt','area-next','Was ist der nächste kleine Schritt?',info.next,120,v=>writeAreaInfo(area,{next:v}));
+      groupedLine(main,'Ziel (optional)','area-goal','Ein Satz zum Ziel',info.goal,120,v=>writeAreaInfo(area,{goal:v}));
+      const group=settingGroup('Projekte');group.section.className='group settings-group projects';
+      for(const p of info.projects){const row=button('',()=>projectSheet(area,p));row.className='row-btn project-row'+(p.status==='Erledigt'?' is-done':'');const copy=node('span',p.name,'row-label');copy.append(node('small',p.status+(p.next?' · '+p.next:''),'project-meta'));row.append(copy,glyph('chevron','chevron'));group.list.append(row)}
+      const add=button('',()=>projectSheet(area,null));add.className='row-btn add-row';add.append(glyph('plus'),node('span','Projekt hinzufügen','row-label'));group.list.append(add);
+      if(!info.projects.length)group.section.append(node('p','Noch keine Projekte. Lege nur an, was du wirklich angehst.','group-footer'));main.append(group.section);
+      const plans=Object.entries(data.days).filter(([,d])=>d.area===area).sort(([a],[b])=>b.localeCompare(a)).slice(0,8);
+      if(plans.length){const history=settingGroup('Verlauf');for(const [key,d] of plans){const row=node('div',undefined,'value-row'),copy=node('span',dateLabel(key),'row-label');copy.append(node('small',d.result,'project-meta'));row.append(copy,node('span',statusLabel(d.status),'row-detail'));history.list.append(row)}main.append(history.section)}
+    }
+    function projectSheet(area,project){
+      const sheet=calendarOpenSheet(project?'Projekt bearbeiten':'Neues Projekt'),form=node('form'),submit=node('button',project?'Sichern':'Hinzufügen','end-action');submit.type='submit';submit.setAttribute('form','project-form');form.id='project-form';calendarSheetNav(sheet.dialog,project?'Projekt bearbeiten':'Neues Projekt',sheet.close,submit);
+      const list=node('div',undefined,'list group'),nameCell=node('div',undefined,'input-cell'),name=node('input');name.id='project-name';name.placeholder='Projektname';name.maxLength=80;name.value=project?.name||'';name.setAttribute('aria-label','Projektname');nameCell.append(name);list.append(nameCell);
+      const status=groupedSelect(list,'Status','project-status',PROJECT_STATUS.map(s=>[s,s]),project?.status||'In Arbeit');
+      const nextCell=node('div',undefined,'input-cell'),next=node('input');next.id='project-next';next.placeholder='Nächster Schritt';next.maxLength=120;next.value=project?.next||'';next.setAttribute('aria-label','Nächster Schritt');nextCell.append(next);list.append(nextCell);form.append(list);sheet.dialog.append(form);
+      const update=()=>{submit.disabled=!name.value.trim()};name.addEventListener('input',update);update();
+      form.addEventListener('submit',e=>{e.preventDefault();if(!name.value.trim())return;const ok=project?projectUpdate(area,project.id,{name:name.value,status:status.value,next:next.value}):Boolean(projectAdd(area,{name:name.value,status:status.value,next:next.value}));if(ok){sheet.close();render()}});
+      if(project){const actions=node('div',undefined,'list project-delete'),remove=button('Projekt löschen',()=>restoreSheet('Projekt löschen?','„'+project.name+'“ wird aus diesem Lebensbereich entfernt.','Projekt löschen',()=>{sheet.close();projectDelete(area,project.id);render()}));remove.className='row-btn danger';actions.append(remove);sheet.dialog.append(actions)}
+      sheet.show();name.focus();
     }
     function addSkip(parent,key) {
       const details = node('details');
@@ -473,9 +662,12 @@ function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h
         input.addEventListener('change',()=>{const value=input.value.trim();if(value&&(!validUrl(value)||value.length>2048)){input.value=data.settings.newsUrl;say('Verwende eine http- oder https-URL. Dein bisheriger Eintrag bleibt erhalten.');return}if(!saveSettings({...data.settings,newsUrl:value}))input.value=data.settings.newsUrl;else{input.value=value;say('Nachrichten-URL gespeichert.')}});return;
       }
       if(settingsSub==='areas'){
-        const edit=button(areasEditing?'Fertig':'Bearbeiten',()=>{areasEditing=!areasEditing;render()});edit.className='end-action';compactNav('Lebensbereiche','Einstellungen',()=>{settingsSub=null;areasEditing=false;render();main.querySelector('h2')?.focus()},edit);const group=settingGroup('Lebensbereiche','Verwende 1–20 unterschiedliche Lebensbereiche mit jeweils bis zu 60 Zeichen. Frühere Einträge behalten ihren ursprünglichen Lebensbereich. Änderungen werden automatisch gespeichert.');
-        data.settings.areas.forEach((area,index)=>{if(!areasEditing){const row=node('div',undefined,'value-row');row.append(node('span',area,'row-label'));group.list.append(row);return}const cell=node('div',undefined,'input-cell'),remove=button('',()=>{if(data.settings.areas.length===1){say('Mindestens ein Lebensbereich muss erhalten bleiben.');return}const list=data.settings.areas.filter((_,i)=>i!==index);if(saveSettings({...data.settings,areas:list}))render()});remove.className='delete-area';remove.append(glyph('minus'));remove.setAttribute('aria-label','Löschen: '+area);const input=node('input');input.id='area-'+index;input.value=area;input.maxLength=60;input.setAttribute('aria-label','Lebensbereich '+(index+1));input.addEventListener('change',()=>{const value=input.value.trim();if(!value||value.length>60||data.settings.areas.some((a,i)=>i!==index&&a===value)){input.value=data.settings.areas[index];say('Gib einen eindeutigen Lebensbereich mit 1–60 Zeichen ein.');return}const list=[...data.settings.areas];list[index]=value;if(!saveSettings({...data.settings,areas:list}))input.value=data.settings.areas[index];else input.value=value});cell.append(remove,input);group.list.append(cell)});
-        const add=node('div',undefined,'input-cell add-area'),plus=glyph('plus'),input=node('input');input.id='add-area';input.placeholder='Lebensbereich hinzufügen …';input.maxLength=60;input.setAttribute('aria-label','Lebensbereich hinzufügen');input.addEventListener('change',()=>{const value=input.value.trim();if(!value)return;if(data.settings.areas.length>=20||value.length>60||data.settings.areas.includes(value)){input.value='';say('Verwende 1–20 unterschiedliche Lebensbereiche mit jeweils bis zu 60 Zeichen.');return}if(saveSettings({...data.settings,areas:[...data.settings.areas,value]}))render();else input.value=''});add.append(plus,input);group.list.append(add);main.append(group.section);return;
+        const edit=button(areasEditing?'Fertig':'Bearbeiten',()=>{areasEditing=!areasEditing;render()});edit.className='end-action';compactNav('Lebensbereiche','Einstellungen',()=>{settingsSub=null;areasEditing=false;render();main.querySelector('h2')?.focus()},edit);const group=settingGroup('Lebensbereiche','Jeder Bereich gehört zum Fokus Arbeit oder Privat. Verwende 1–20 unterschiedliche Lebensbereiche mit jeweils bis zu 60 Zeichen. Frühere Einträge behalten ihren ursprünglichen Lebensbereich. Änderungen werden automatisch gespeichert.');
+        data.settings.areas.forEach((area,index)=>{
+          const focusPick=(parent,id)=>{const select=node('select');select.id=id;select.className='focus-pick';select.setAttribute('aria-label','Fokus für '+area);for(const f of ['Arbeit','Privat']){const o=node('option',f);o.value=f;select.append(o)}select.value=areaFocus(area);select.addEventListener('change',()=>{if(!writeAreaInfo(area,{focus:select.value}))select.value=areaFocus(area)});parent.append(select);return select};
+          if(!areasEditing){const row=node('label',undefined,'select-row');row.htmlFor='focus-'+index;row.append(node('span',area,'row-label'));focusPick(row,'focus-'+index);row.append(glyph('chevron','chevron'));group.list.append(row);return}
+          const cell=node('div',undefined,'input-cell'),remove=button('',()=>{if(data.settings.areas.length===1){say('Mindestens ein Lebensbereich muss erhalten bleiben.');return}const list=data.settings.areas.filter((_,i)=>i!==index);if(saveSettings(areaSettings(list)))render()});remove.className='delete-area';remove.append(glyph('minus'));remove.setAttribute('aria-label','Löschen: '+area);const input=node('input');input.id='area-'+index;input.value=area;input.maxLength=60;input.setAttribute('aria-label','Lebensbereich '+(index+1));input.addEventListener('change',()=>{const value=input.value.trim();if(!value||value.length>60||data.settings.areas.some((a,i)=>i!==index&&a===value)){input.value=data.settings.areas[index];say('Gib einen eindeutigen Lebensbereich mit 1–60 Zeichen ein.');return}const list=[...data.settings.areas];list[index]=value;if(!saveSettings(areaSettings(list,area,value)))input.value=data.settings.areas[index];else input.value=value});cell.append(remove,input);focusPick(cell,'focus-'+index);group.list.append(cell)});
+        const add=node('div',undefined,'input-cell add-area'),plus=glyph('plus'),input=node('input');input.id='add-area';input.placeholder='Lebensbereich hinzufügen …';input.maxLength=60;input.setAttribute('aria-label','Lebensbereich hinzufügen');input.addEventListener('change',()=>{const value=input.value.trim();if(!value)return;if(data.settings.areas.length>=20||value.length>60||data.settings.areas.includes(value)){input.value='';say('Verwende 1–20 unterschiedliche Lebensbereiche mit jeweils bis zu 60 Zeichen.');return}if(saveSettings(areaSettings([...data.settings.areas,value])))render();else input.value=''});add.append(plus,input);group.list.append(add);main.append(group.section);return;
       }
       compactNav('Einstellungen','Heute',()=>go('today'));main.append(appearance());if(calendarState.connected||calendarState.reconnect){const calendar=settingGroup('Google Kalender',calendarState.email);calendar.list.append(rowAction('Verbindung trennen',calendarDisconnect,'minus'));main.append(calendar.section)}const news=settingGroup('Nachrichten'),domain=data.settings.newsUrl?new URL(data.settings.newsUrl).hostname:'Nicht festgelegt';news.list.append(settingLink('Nachrichten-URL',domain,()=>openSettings('news')));main.append(news.section);const areas=settingGroup('Lebensbereiche');areas.list.append(settingLink('Lebensbereiche',String(data.settings.areas.length),()=>openSettings('areas')));main.append(areas.section);
       const backup=settingGroup('Deine Daten',backupStatus()),input=node('input');input.id='import';input.type='file';input.accept='.json,application/json';input.hidden=true;input.className='hidden-file';input.setAttribute('aria-label','JSON importieren');backup.list.append(dataAction('Sicherung teilen / herunterladen',backupData,'share','grey'),dataAction('JSON exportieren',()=>downloadData(),'export','blue'),dataAction('JSON importieren …',()=>input.click(),'tray','orange'));backup.section.append(input);const status=backup.section.querySelector('.group-footer');status.className+=' backup-status';main.append(backup.section);
@@ -486,7 +678,7 @@ function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h
       return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
     }
     function render() {
-      reconcile(); observedDay = dayKey(); document.body.classList.toggle('home',view==='today'); document.body.classList.toggle('planning',view==='plan'); document.body.classList.toggle('pushed',Boolean(view==='settings'&&settingsSub||view==='history'&&selectedDay)); main.replaceChildren();
+      reconcile(); observedDay = dayKey(); document.body.classList.toggle('home',view==='today'&&!areaOpen); document.body.classList.toggle('planning',view==='plan'); document.body.classList.toggle('pushed',Boolean(view==='settings'&&settingsSub||view==='history'&&selectedDay||view==='today'&&areaOpen)); main.replaceChildren();
       document.querySelectorAll('nav button').forEach(b=>{
         if (b.dataset.view === view) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
       });
@@ -495,6 +687,7 @@ function title(text) { const h = node('h2',text); h.tabIndex = -1; main.append(h
     function tick() {
       if(view==='calendar')calendarUpdateNow();
       const changed = reconcile();
+      if (view==='today' && !areaOpen && homeSignature()!==lastHomeSignature && !changed && observedDay===dayKey()) { render(); return; }
       if (observedDay !== dayKey() || changed) {
         const newDay = observedDay !== dayKey(); render();
         if (newDay) say('Ein neuer Tag hat begonnen. Heute ist '+dateLabel(dayKey())+'.');
