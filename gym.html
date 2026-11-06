@@ -660,7 +660,12 @@
           };
           if(!bodyweight(e.name)) {
             const reference=parseWeight(w.value), increment=step(e.name), anchor=reference ?? 0;
-            const weights=[...new Set(Array.from({length:41},(_,n)=>Math.round((anchor+(n-20)*increment)*100)/100).filter(v=>v>=0 && v<=1000))];
+            const standardMax=/leg press|beinpresse/i.test(e.name)?300:120;
+            const max=Math.min(1000,Math.max(standardMax,Math.ceil(anchor/increment)*increment));
+            const count=Math.floor(max/increment)+1;
+            // Keep unusual tiny custom steps lightweight without discarding the saved value.
+            const start=count>601?Math.max(0,Math.min(Math.floor(anchor/increment)-300,count-601)):0;
+            const weights=[...new Set([0,...Array.from({length:Math.min(601,count)},(_,n)=>Math.round((start+n)*increment*100)/100),max,...(reference!==null?[reference]:[])])].sort((a,b)=>a-b);
             if(reference===null) weights.unshift(null);
             addWheel(w,weights,'weight',e.name+' · kg');
           }
