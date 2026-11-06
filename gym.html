@@ -172,6 +172,26 @@
     .preview-navigation .row { margin:6px 0; }
     .preview-navigation p { margin:6px 0 0; font-size:12px; }
     .new-workout-actions { margin:0 0 20px; }
+
+    /* Full-screen rest: one clock, one preview, one dock action. */
+    .rest-screen { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; min-width:0; padding:24px 0 32px; text-align:center; }
+    .rest-screen > h2 { margin:0; color:var(--muted); font-size:17px; font-weight:500; line-height:1.4; letter-spacing:0; }
+    .rest-screen p { margin:0; }
+    .rest-clock { color:var(--ink); font-size:clamp(4.25rem,27vw,7.5rem); font-weight:650; font-variant-numeric:tabular-nums; line-height:1.05; letter-spacing:-.05em; white-space:nowrap; }
+    .rest-preview { display:grid; gap:4px; max-width:28ch; color:var(--muted); font-size:16px; line-height:1.45; overflow-wrap:anywhere; }
+    .rest-preview strong,.rest-preview h3 { margin:0; color:var(--ink); font-size:20px; font-weight:600; line-height:1.3; letter-spacing:-.2px; }
+    .rest-screen ~ .workout-bottom > button { width:100%; min-height:56px; }
+    @media (max-height:640px) {
+      .rest-screen { gap:14px; padding:12px 0 20px; }
+      .rest-clock { font-size:clamp(3.5rem,20svh,5.75rem); }
+    }
+    body.resting .exercise-card,body.resting .workout-actions,body.resting .workout-manage,body.resting main > .eyebrow,body.resting #complete-set { display:none !important; }
+    body.resting .workout-header { order:0; }
+    body.resting .rest-screen { order:1; }
+    body.resting .workout-bottom { order:2; }
+    #rest-skip { width:100%; min-height:56px; margin-top:12px; }
+    .rest-screen .eyebrow { text-transform:none; letter-spacing:0; font-size:17px; }
+    .rest-screen summary { font-size:14px; color:var(--muted); }
   </style>
 </head>
 <body>
@@ -201,7 +221,7 @@
     function updatePrimary() {
       const dock=document.getElementById('complete-set');
       const row=document.querySelectorAll('.active-set')[0];
-      if(dock) { dock.hidden=!row; dock.disabled=Date.now()<primaryBlockedUntil || (!row?.manual && !!row?.wheels?.some(w=>w.busy())); }
+      if(dock) { dock.hidden=!row || !!active()?.restEnd; dock.disabled=Date.now()<primaryBlockedUntil || (!row?.manual && !!row?.wheels?.some(w=>w.busy())); }
       const next=document.getElementById('next-exercise'); if(next) next.disabled=Date.now()<primaryBlockedUntil;
     }
     const SCHEMA = 2;
@@ -492,33 +512,53 @@
       if (set.changes.length>100) set.changes.shift();
     }
     function logSet(s,e,index,r,w) {
-      const set=e.sets[index];
+      const set=e.sets[index], wasCompleted=set.status==='completed';
       if (set.status==='completed' || set.status==='uncertain') snapshot(set);
       set.status='completed'; set.actualReps=r; set.actualWeight=w; set.timestamp=set.timestamp || Date.now(); set.source=set.changes.length?'manual_correction':'live';
       const exerciseDone=e.sets.every(x=>x.status==='completed' || x.status==='skipped');
       if (exerciseDone && !s.exercises.some(x=>x!==e && pending(x)>=0)) {
         s.restEnd=null; save(); updateRestBar(s);
-      } else { save(); }
+      } else if(!wasCompleted) startRest(s,e.name,exerciseDone?'exercise':'set');
+      else save();
     }
     function restLabel(s) { return (s.restKind==='exercise'?'Übungswechsel':'Satzpause')+(s.restExercise?' · '+s.restExercise:''); }
+    function restNext(s) {
+      const owner=s.exercises.find(e=>e.name===s.restExercise) || currentExercise(s);
+      return owner && pending(owner)>=0 ? owner : owner ? nextExercise(s,owner) : null;
+    }
+    function endRest(s,announce=false) {
+      const next=restNext(s);
+      s.restEnd=null; save(); updateRestBar(s);
+      if(view==='workout') {
+        if(next && next.id!==currentExercise(s)?.id) openExercise(s,next,false);
+        else updatePrimary();
+        document.getElementById('workout-bottom')?.focus();
+      } else if(next) { s.currentExerciseId=next.id; save(); }
+      if(announce) { if(navigator.vibrate) navigator.vibrate(250); say('Pause vorbei. Bereit für den nächsten Satz.'); }
+    }
     function updateRestBar(s) {
-      let bar=document.getElementById('rest-bar');
-      if (!s.restEnd || view!=='workout') { bar?.remove(); return; }
-      if (!bar) { restCard(s); return; }
-      document.getElementById('rest-label').textContent=restLabel(s);
-      tick();
+      const resting=!!s.restEnd && view==='workout';
+      document.body.classList.toggle('resting',resting);
+      if(!resting) { document.getElementById('rest-bar')?.remove(); document.getElementById('rest-skip')?.remove(); updatePrimary(); return; }
+      restCard(s);
     }
     function restCard(s) {
-      if (!s.restEnd) return;
-      document.getElementById('rest-bar')?.remove();
-      const bar=node('section',undefined,'rest-bar'); bar.id='rest-bar'; bar.setAttribute('aria-label','Trainingspause');
-      const description=node('div',undefined,'rest-description');
-      const label=node('p',restLabel(s),'small muted'); label.id='rest-label';
-      const timer=node('p','','timer'); timer.id='rest-timer'; timer.setAttribute('role','timer');
-      description.append(label,timer); bar.append(description);
-      for (const [text,delta] of [['−15 s',-15000],['+15 s',15000]]) bar.append(button(text,()=>{ s.restEnd=Math.max(Date.now(),s.restEnd)+delta; s.restEnd=Math.max(Date.now(),s.restEnd); restAnnounced=false; save(); tick(); }));
-      bar.append(button('Pause beenden',()=>{ s.restEnd=null; save(); bar.remove(); }));
-      (document.getElementById('workout-bottom') || document.body).append(bar); tick();
+      if(!s.restEnd || view!=='workout') return;
+      document.body.classList.toggle('resting',true);
+      document.getElementById('rest-bar')?.remove(); document.getElementById('rest-skip')?.remove();
+      const screen=node('section',undefined,'rest-screen'); screen.id='rest-bar'; screen.setAttribute('aria-label','Trainingspause');
+      const label=node('p',restLabel(s),'eyebrow'); label.id='rest-label';
+      const timer=node('p','','rest-clock'); timer.id='rest-timer'; timer.setAttribute('role','timer'); timer.setAttribute('aria-live','off');
+      const next=restNext(s), index=next?pending(next):-1;
+      const preview=node('p',next && index>=0 ? 'Danach: '+next.name+' · Satz '+(index+1)+' · '+setText(next.sets[index],next.name) : 'Danach: Trainingsübersicht','rest-preview');
+      screen.append(label,timer,preview);
+      const options=node('details'); options.append(node('summary','Pausenzeit ändern'));
+      const controls=node('div',undefined,'row');
+      for(const [text,delta] of [['−15 s',-15000],['+15 s',15000]]) controls.append(button(text,()=>{ s.restEnd=Math.max(Date.now(),s.restEnd+delta); save(); tick(); }));
+      options.append(controls); screen.append(options); main.append(screen);
+      const skip=button('Pause überspringen',()=>endRest(s),true); skip.id='rest-skip';
+      document.getElementById('workout-bottom')?.append(skip);
+      updatePrimary(); tick();
     }
     function valueWheel(input,values,label) {
       const wheel=node('div',undefined,'value-wheel');
@@ -659,6 +699,7 @@
           // The dock remains focusable while its buttons are briefly disabled.
           document.getElementById('workout-bottom')?.focus();
           updateProgress(s);
+          if(!s.exercises.some(x=>pending(x)>=0)) finishWorkout(s);
         },set.status!=='completed');
         toggle.setAttribute('aria-label',e.name+' Satz '+(i+1)+(set.status==='completed'?' rückgängig':' abschließen'));
         row.confirm=()=>toggle.click(); row.append(toggle);
@@ -927,7 +968,7 @@
       bottom.append(progress,bar,complete);
       const actions=main.querySelector('.workout-actions'); if(actions) bottom.append(actions);
       main.append(bottom); updatePrimary();
-      updateProgress(s); restCard(s); tick();
+      updateProgress(s); updateRestBar(s); tick();
     }
 
     function duration(s) {
@@ -1139,6 +1180,7 @@
       document.getElementById('rest-bar')?.remove();
       document.getElementById('workout-bottom')?.remove();
       document.body.classList.toggle('training',view==='workout');
+      document.body.classList.toggle('resting',view==='workout' && !!active()?.restEnd);
       main.replaceChildren();
       document.querySelectorAll('nav button').forEach(b=>{ if (b.dataset.view===view || (b.dataset.view==='home' && ['workout','plan','finish'].includes(view))) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
       if (['history','settings'].includes(view)) {
@@ -1157,7 +1199,7 @@
       const label=document.getElementById('rest-label');
       if (label) label.textContent=left ? (restLabel(s)) : 'Pause vorbei';
       if (timer) timer.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
-      if (!left && !restAnnounced) { restAnnounced=true; if (navigator.vibrate) navigator.vibrate(250); say('Pause vorbei. Bereit für den nächsten Satz.'); }
+      if (!left) { restAnnounced=true; endRest(s,true); }
     }
     document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
     document.addEventListener('visibilitychange',()=>{ if (!document.hidden) tick(); });
