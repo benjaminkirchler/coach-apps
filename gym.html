@@ -143,6 +143,8 @@
     #next-exercise { grid-column:1 / -1; font-size:17px; }
     body.training .eyebrow { margin-bottom:6px; }
     body.training .workout-header { margin-bottom:10px; padding-bottom:8px; }
+    .workout-header > div { flex:1; min-width:0; }
+    .workout-home { flex:none; min-width:44px; padding:10px 0; border:0; background:transparent; color:var(--accent); }
     body.training .shell { padding-top:8px; padding-bottom:90px; }
     .workout-manage { margin-top:4px; }
     #feedback { bottom:76px; font-size:14px; padding:8px 12px; }
@@ -161,6 +163,15 @@
     #feedback:not(:empty) { padding:8px 0; }
     .workout-actions { margin:8px 0 0; }
     body.training #feedback { display:block; min-height:28px; padding:2px 0; font-size:13px; }
+    .preview-navigation { position:fixed; top:8px; right:8px; z-index:20; max-width:min(350px,calc(100vw - 16px)); background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:0 12px; box-shadow:0 4px 20px #0002; }
+    .preview-navigation summary { font-size:13px; min-height:36px; padding:7px 0; }
+    .preview-navigation[open] { padding-bottom:10px; }
+    .preview-links { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0; }
+    .preview-navigation button { font-size:13px; min-height:40px; padding:6px; }
+    .preview-navigation [aria-current] { background:var(--soft); color:var(--accent); }
+    .preview-navigation .row { margin:6px 0; }
+    .preview-navigation p { margin:6px 0 0; font-size:12px; }
+    .new-workout-actions { margin:0 0 20px; }
   </style>
 </head>
 <body>
@@ -185,6 +196,7 @@
     const KEY = 'gym-log-v1';
     let nutritionOpen=false;
     let primaryBlockedUntil=0;
+    let previewNavOpen=false;
     function blockPrimary() { primaryBlockedUntil=Date.now()+650; setTimeout(updatePrimary,660); }
     function updatePrimary() {
       const dock=document.getElementById('complete-set');
@@ -266,7 +278,8 @@
       if (s.status==='completed' && (s.actualReps===null || s.source===null)) throw Error('Abgeschlossenem Satz fehlen Werte.');
       if (s.changes.some(c=>!obj(c) || !stamp(c.at) || c.at===null || !['completed','uncertain','skipped'].includes(c.status) || !natural(c.actualReps) || !weight(c.actualWeight) || ![null,'leicht','mittel','schwer'].includes(c.rating) || !stamp(c.timestamp) || ![null,'live','manual_correction','imported'].includes(c.source))) throw Error('Ungültiges Änderungsprotokoll.');
       if (!str(s.planSlotId ?? '',80)) throw Error('Planplatz ungültig.');
-      return {planSlotId:s.planSlotId ?? '',status:s.status,targetReps:s.targetReps,targetWeight:s.targetWeight,actualReps:s.actualReps,actualWeight:s.actualWeight,rating:s.rating,timestamp:s.timestamp,source:s.source,changes:s.changes.map(c=>({at:c.at,status:c.status,actualReps:c.actualReps,actualWeight:c.actualWeight,rating:c.rating,timestamp:c.timestamp,source:c.source}))};
+      const draftInput=obj(s.draftInput) && str(s.draftInput.w,32) && str(s.draftInput.r,32) ? {w:s.draftInput.w,r:s.draftInput.r} : null;
+      return {...(draftInput?{draftInput}:{}),planSlotId:s.planSlotId ?? '',status:s.status,targetReps:s.targetReps,targetWeight:s.targetWeight,actualReps:s.actualReps,actualWeight:s.actualWeight,rating:s.rating,timestamp:s.timestamp,source:s.source,changes:s.changes.map(c=>({at:c.at,status:c.status,actualReps:c.actualReps,actualWeight:c.actualWeight,rating:c.rating,timestamp:c.timestamp,source:c.source}))};
     }
     function validateData(input) {
       input=migrateData(input);
@@ -329,9 +342,16 @@
       return fresh();
     }
     let data=read();
+    for(const session of data.sessions) if(session.status==='active') {
+      session.exercises.forEach(e=>e.sets.forEach((set,i)=>{ if(set.draftInput && set.status!=='skipped') inputDrafts.set(e.id+':'+i,set.draftInput); }));
+    }
     try { const saved=localStorage.getItem(KEY); if (saved && JSON.parse(saved).schemaVersion!==SCHEMA) save(); } catch {}
     function save() {
       if (storageProblem.startsWith('Gespeicherte Daten')) return false;
+      for(const session of data.sessions) session.exercises.forEach(e=>e.sets.forEach((set,i)=>{
+        const cached=session.status==='active' && set.status!=='skipped'?inputDrafts.get(e.id+':'+i):null;
+        if(cached) set.draftInput={...cached}; else delete set.draftInput;
+      }));
       try { localStorage.setItem(KEY,JSON.stringify(data)); return true; }
       catch { warning('Speicher nicht verfügbar. Änderungen bleiben nur bis zum Schließen dieser Seite erhalten. Bitte Daten exportieren.'); return false; }
     }
@@ -389,6 +409,9 @@
         const card=node('section',undefined,'card');
         card.append(node('h3','Training fortsetzen'),node('p',data.settings.templates[session.type].name+' · begonnen '+timeLabel(session.startTime)));
         card.append(button('Training fortsetzen',()=>go('workout'),true)); main.append(card);
+        const alternatives=node('div',undefined,'stack new-workout-actions');
+        for(const type of ['upper','lower']) alternatives.append(button('Neues '+(type==='upper'?'Oberkörpertraining':'Unterkörpertraining'),()=>startNewWorkout(type)));
+        main.append(alternatives);
       } else {
         const suggested=suggestedType(), other=suggested==='upper'?'lower':'upper';
         const choices=node('section',undefined,'card training-hero');
@@ -427,6 +450,18 @@
       main.append(button('Training starten',()=>startWorkout(draft),true));
       draft.exercises.forEach((e,i)=>main.append(planExercise(e,i)));
       addExercise(main,name=>{ draft.exercises.push(exercise(name)); render(); });
+    }
+    function startNewWorkout(type) {
+      const candidate=newDraft(type);
+      if(!candidate.exercises.length) { say('Diese Vorlage enthält keine Übungen. Bitte zuerst den Plan in den Einstellungen ergänzen.'); return; }
+      const session=active();
+      if(session) {
+        if(!window.confirm('Bisheriges Training im Verlauf speichern, offene Sätze auslassen und ein neues '+data.settings.templates[type].name+'training starten?')) return;
+        finishWorkout(session,false);
+        if(active()) return;
+      }
+      primaryBlockedUntil=0;
+      startWorkout(session ? newDraft(type) : candidate);
     }
     function startWorkout(plan) {
       if (active()) { go('workout'); return; }
@@ -522,7 +557,7 @@
       });
       wheel.adjust=delta=>{ const index=Math.max(0,Math.min(values.length-1,selected+delta)); lastScrollAt=0; wheel.scrollTop=index*44; choose(index); updatePrimary(); };
       wheel.addEventListener('keydown',event=>{
-        const delta=event.key==='ArrowUp'?-1:event.key==='ArrowDown'?1:0;
+        const delta=event.key==='ArrowUp'?1:event.key==='ArrowDown'?-1:0;
         if(delta) { event.preventDefault(); wheel.adjust(delta); }
       });
       input.addEventListener('input',()=>{
@@ -595,7 +630,7 @@
         };
         const readValues=()=>({r:parseReps(r.value),w:bodyweight(e.name)?null:parseWeight(w.value)});
         const valid=v=>v.r!==null && (bodyweight(e.name)||v.w!==null);
-        const remember=()=>{ inputDrafts.set(key,{w:w.value,r:r.value}); };
+        const remember=()=>{ inputDrafts.set(key,{w:w.value,r:r.value}); save(); };
         const commit=()=>{
           const v=readValues();
           r.setAttribute('aria-invalid',String(v.r===null));
@@ -620,9 +655,9 @@
             const v=readValues(); if (!valid(v)) { say('Bitte gültige Wiederholungen und kg eingeben.'); (v.r===null?r:w).focus(); return; }
             blockPrimary(); logSet(s,e,i,v.r,v.w); say('Satz '+(i+1)+' gespeichert.');
           }
-          if (set.status==='planned') remember(); else inputDrafts.delete(key); paintRow(set,i,row); refreshSets();
-          if(pending(e)>=0) rows[pending(e)].querySelector('button').focus();
-          else document.getElementById('next-exercise')?.focus();
+          if (set.status==='planned') remember(); else inputDrafts.delete(key); save(); paintRow(set,i,row); refreshSets();
+          // The dock remains focusable while its buttons are briefly disabled.
+          document.getElementById('workout-bottom')?.focus();
           updateProgress(s);
         },set.status!=='completed');
         toggle.setAttribute('aria-label',e.name+' Satz '+(i+1)+(set.status==='completed'?' rückgängig':' abschließen'));
@@ -681,10 +716,13 @@
           }}); save(); render();
         }));
       }
-      const index=s.exercises.indexOf(e);
-      controls.append(button('Nach oben',()=>{ move(s.exercises,index,-1); save(); render(); }),button('Nach unten',()=>{ move(s.exercises,index,1); save(); render(); }));
       menu.append(controls);
-      addExercise(menu,name=>{
+      const index=s.exercises.indexOf(e);
+      const management=node('details'); management.append(node('summary',e.name+' ändern'));
+      const order=node('div',undefined,'row');
+      order.append(button('Nach oben',()=>{ move(s.exercises,index,-1); save(); render(); }),button('Nach unten',()=>{ move(s.exercises,index,1); save(); render(); }));
+      management.append(order);
+      addExercise(management,name=>{
         const open=e.sets.filter(x=>x.status==='planned');
         if (!open.length) { say('Keine offenen Sätze zum Tauschen.'); return; }
         e.sets.forEach((_,i)=>inputDrafts.delete(e.id+':'+i));
@@ -698,6 +736,7 @@
         rating.addEventListener('change',()=>{ if (set.status!=='completed') { rating.value=''; say('Bitte den Satz zuerst abschließen.'); return; } snapshot(set); set.rating=rating.value || null; save(); });
       });
       menu.append(effort);
+      card.management=management;
       card.append(menu); return card;
     }
     function validateXpRules(rules) {
@@ -780,13 +819,15 @@
       return others.find(x=>!x.deferred) || others[0] || null;
     }
     function nextLabel(s,e) { const next=nextExercise(s,e); return next?'Weiter zu '+next.name:pending(e)>=0?'Training beenden':'Training abschließen'; }
-    function openExercise(s,e) {
-      s.currentExerciseId=e.id; chosenExercise=e.id; e.deferred=false; save(); render();
+    function openExercise(s,e,resume=true) {
+      s.currentExerciseId=e.id; chosenExercise=e.id; if(resume)e.deferred=false; save(); render();
+      main.querySelector('h2')?.focus();
     }
     function deferExercise(s,e) {
+      e.deferred=true;
       const next=nextExercise(s,e);
-      if (!next) { say('Keine andere Übung mehr offen. Du kannst warten oder diese Übung ersetzen.'); return; }
-      e.deferred=true; openExercise(s,next); say(e.name+' bleibt für später offen.');
+      if(next && !next.deferred) { openExercise(s,next,false); say(e.name+' bleibt für später offen.'); }
+      else { save(); render(); say('Alle offenen Übungen sind zurückgestellt. Wähle ein freies Gerät im Plan oder beende das Training.'); }
     }
     function skipExercise(s,e) {
       if (!window.confirm('Offene Sätze von '+e.name+' auslassen? Du kannst sie in der Übersicht später wieder öffnen. XP-Abzüge gelten erst mit Trainerregeln.')) return;
@@ -796,7 +837,7 @@
       else { finishWorkout(s); return; }
       save(); render(); say(e.name+' ausgelassen.');
     }
-    function finishWorkout(s) {
+    function finishWorkout(s,confirmOpen=true) {
       for (const e of s.exercises) for (let i=0;i<e.sets.length;i++) {
         const cached=inputDrafts.get(e.id+':'+i);
         if (e.sets[i].status==='completed' && cached && (parseReps(cached.r)===null || (!bodyweight(e.name) && parseWeight(cached.w)===null))) {
@@ -805,7 +846,7 @@
         }
       }
       const open=s.exercises.reduce((n,e)=>n+e.sets.filter(x=>x.status==='planned').length,0);
-      if (open && !window.confirm(open+' offene Sätze als übersprungen markieren und Training beenden?')) return;
+      if (open && confirmOpen && !window.confirm(open+' offene Sätze als übersprungen markieren und Training beenden?')) return;
       s.exercises.forEach(e=>e.sets.forEach(x=>{ if (x.status==='planned') x.status='skipped'; }));
       s.status='completed'; s.endTime=Date.now(); s.restEnd=null; inputDrafts.clear(); save(); selectedSession=s.id; go('finish');
     }
@@ -837,20 +878,28 @@
       const s=active(); if (!s) { go('home'); return; }
       ensurePlan(s);
       const header=node('section',undefined,'workout-header'), info=node('div');
-      info.append(node('h2',data.settings.templates[s.type].name));
+      const heading=node('h2',data.settings.templates[s.type].name); heading.tabIndex=-1;
+      info.append(heading);
       const elapsed=node('p','','small muted'); elapsed.id='workout-elapsed';
       info.append(elapsed);
-      header.append(info,button('Beenden',()=>finishWorkout(s))); main.append(header);
+      const home=button('‹ Start',()=>go('home')); home.className='workout-home';
+      home.setAttribute('aria-label','Zur Startseite');
+      header.append(home,info,button('Beenden',()=>finishWorkout(s))); main.append(header);
       const e=currentExercise(s);
-      if (e) {
+      const remaining=s.exercises.filter(x=>pending(x)>=0);
+      const waiting=remaining.length>0 && remaining.every(x=>x.deferred);
+      let exerciseManagement=null;
+      if(waiting) main.append(node('p','Alle offenen Übungen sind für später zurückgestellt. Wähle unten ein freies Gerät oder beende das Training.','notice'));
+      if (e && !waiting) {
         s.currentExerciseId=e.id;
-        main.append(node('p','Übung '+(s.exercises.indexOf(e)+1)+' von '+s.exercises.length,'eyebrow'),exerciseCard(s,e));
+        const card=exerciseCard(s,e); exerciseManagement=card.management;
+        main.append(node('p','Übung '+(s.exercises.indexOf(e)+1)+' von '+s.exercises.length,'eyebrow'),card);
         const actions=node('div',undefined,'next-actions workout-actions');
         const next=button(nextLabel(s,e),()=>{
           if(Date.now()<primaryBlockedUntil) return;
           blockPrimary();
           const n=nextExercise(s,e);
-          if(n) { if(pending(e)>=0)e.deferred=true; openExercise(s,n); }
+          if(n) { if(pending(e)>=0)e.deferred=true; openExercise(s,n,false); }
           else finishWorkout(s);
         },true); next.id='next-exercise'; next.hidden=pending(e)>=0;
         actions.append(next);
@@ -858,8 +907,10 @@
         main.append(actions);
       }
       const manage=node('details',undefined,'workout-manage'); manage.append(node('summary','Training verwalten'));
+      if(exerciseManagement) manage.append(exerciseManagement);
       const ask=node('details'); ask.append(node('summary','Training teilen'),button('Coach fragen · Training teilen',()=>shareWorkout(s))); manage.append(ask);
-      const overview=node('details'); overview.id='workout-overview'; overview.append(node('summary','Trainingsplan · alle Übungen'));
+      const overview=node('details'); overview.id='workout-overview'; overview.open=waiting;
+      if(waiting) manage.open=true; overview.append(node('summary','Trainingsplan · alle Übungen'));
       s.exercises.forEach(x=>{
         const done=x.sets.filter(set=>set.status==='completed').length;
         const item=node('div',undefined,'item');
@@ -869,6 +920,7 @@
       }); manage.append(overview);
       const add=node('details'); add.append(node('summary','+ Übung hinzufügen')); addExercise(add,name=>{ const extra=exercise(name); s.exercises.push(extra); s.currentExerciseId=extra.id; save(); render(); }); manage.append(add); main.append(manage);
       const bottom=node('section',undefined,'workout-bottom'); bottom.id='workout-bottom';
+      bottom.tabIndex=-1; bottom.setAttribute('aria-label','Satzaktionen');
       const progress=node('p'); progress.id='workout-progress';
       const bar=node('progress'); bar.id='training-percent'; bar.setAttribute('aria-label','Anteil tatsächlich abgeschlossener Sätze');
       const complete=button('Satz geschafft',()=>{ document.querySelectorAll('.active-set')[0]?.confirm(); },true); complete.id='complete-set';
@@ -1031,13 +1083,57 @@
           preview.append(node('p','Gültige Datei: '+candidate.sessions.length+' Sitzungen. Der Import ersetzt alle vorhandenen Daten.','notice'));
           preview.append(button('Daten ersetzen',()=>{
             if (!importCandidate || !window.confirm('Alle Gym-Log-Daten durch diese Datei ersetzen?')) return;
-            const next=validateData(importCandidate), old=data, prior=storageProblem;
+            const next=validateData(importCandidate), old=data, prior=storageProblem, oldDrafts=new Map(inputDrafts);
+            inputDrafts.clear();
+            next.sessions.filter(s=>s.status==='active').forEach(s=>s.exercises.forEach(e=>e.sets.forEach((set,i)=>{ if(set.draftInput)inputDrafts.set(e.id+':'+i,set.draftInput); })));
             data=next; storageProblem='';
-            if (!save()) { data=old; storageProblem=prior; say('Import nicht gespeichert. Vorhandene Daten bleiben erhalten.'); return; }
-            document.getElementById('storage-message').hidden=true; draft=null; chosenExercise=null; selectedSession=null; historyFilter=''; inputDrafts.clear(); importCandidate=null; go('home'); say('Daten importiert.');
+            if (!save()) { data=old; inputDrafts.clear(); oldDrafts.forEach((v,k)=>inputDrafts.set(k,v)); storageProblem=prior; say('Import nicht gespeichert. Vorhandene Daten bleiben erhalten.'); return; }
+            document.getElementById('storage-message').hidden=true; draft=null; chosenExercise=null; selectedSession=null; historyFilter=''; importCandidate=null; go('home'); say('Daten importiert.');
           },true));
         } catch(error) { preview.append(node('p','Import fehlgeschlagen: '+error.message,'notice')); }
       }); main.append(backup);
+    }
+    function previewNavigation() {
+      document.getElementById('preview-navigation')?.remove();
+      if(typeof location==='undefined' || location.protocol!=='file:') return;
+      const panel=node('details',undefined,'preview-navigation'); panel.id='preview-navigation';
+      panel.open=previewNavOpen;
+      panel.addEventListener('toggle',()=>{ previewNavOpen=panel.open; });
+      panel.append(node('summary','Vorschau · Navigation'));
+      const screens=[['home','Start'],['plan','Plan'],['workout','Training'],['history','Verlauf'],['settings','Einstellungen'],['finish','Abschluss']];
+      const jump=target=>{
+        if(target==='workout' && !active()) { say('Bitte zuerst auf Start ein Training beginnen.'); return; }
+        if(target==='finish') {
+          const last=completed()[0]; if(!last) { say('Noch kein abgeschlossenes Training für diese Ansicht.'); return; }
+          selectedSession=last.id;
+        }
+        go(target);
+      };
+      const links=node('div',undefined,'preview-links');
+      screens.forEach(([target,label])=>{
+        const control=button(label,()=>jump(target));
+        if(target===view) control.setAttribute('aria-current','page');
+        links.append(control);
+      }); panel.append(links);
+      const paging=node('div',undefined,'row');
+      for(const [label,delta] of [['← Ansicht',-1],['Ansicht →',1]]) {
+        const index=screens.findIndex(([target])=>target===view)+delta;
+        const control=button(label,()=>jump(screens[index][0])); control.disabled=index<0 || index>=screens.length; paging.append(control);
+      }
+      panel.append(paging);
+      const session=active();
+      if(session) {
+        const index=session.exercises.indexOf(currentExercise(session)), exercises=node('div',undefined,'row');
+        for(const [label,delta] of [['← Übung',-1],['Übung →',1]]) {
+          const control=button(label,()=>{
+            const next=session.exercises[index+delta]; if(!next)return;
+            session.currentExerciseId=next.id; chosenExercise=next.id; save(); go('workout');
+          }); control.disabled=index+delta<0 || index+delta>=session.exercises.length; exercises.append(control);
+        }
+        panel.append(exercises,node('p',(index+1)+' / '+session.exercises.length+' · '+currentExercise(session).name,'small muted'));
+      }
+      panel.append(node('p','Nur lokale Vorschau. Navigation schließt keine Sätze ab.','small muted'));
+      document.body.append(panel);
     }
     function render() {
       document.getElementById('rest-bar')?.remove();
@@ -1049,6 +1145,7 @@
         const back=button('‹ Training',()=>go('home')); back.className='back-home'; main.append(back);
       }
       ({home:showHome,plan:showPlan,workout:showWorkout,finish:showFinish,history:showHistory,settings:showSettings}[view])();
+      previewNavigation();
     }
     function tick() {
       const s=active();
