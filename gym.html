@@ -209,6 +209,37 @@
     body.training main { touch-action:pan-y pinch-zoom; }
     .workout-bottom { display:flex; flex-direction:column; }
     #workout-home-dock { order:10; align-self:center; }
+    .muscle-home { margin:8px 0 16px; }
+    .muscle-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+    .muscle-heading h3 { margin:0; font-size:20px; }
+    .body-pair { display:grid; grid-template-columns:1fr 1fr; justify-content:center; max-width:390px; margin:8px auto; }
+    .body-pair figure { margin:0; min-width:0; text-align:center; }
+    .body-pair svg { width:100%; height:min(31svh,270px); min-height:210px; display:block; }
+    .body-pair figcaption { font-size:12px; color:var(--muted); }
+    .body-pair g[role=button] { cursor:pointer; }
+    .body-pair g[role=button]:focus { outline:none; }
+    .body-pair g[role=button]:focus path { stroke:var(--ink); stroke-width:3; }
+    .muscle-legend { display:flex; justify-content:center; gap:4px; margin:12px 0 6px; }
+    .muscle-legend span { min-width:48px; padding:2px 5px; border-radius:5px; text-align:center; font-size:12px; }
+    .muscle-home > p { text-align:center; margin:6px 0; font-size:12px; }
+    .muscle-home > button { width:100%; margin-top:8px; }
+    .muscle-home > details summary { font-size:13px; }
+    .muscle-detail { color:var(--accent); font-weight:600; }
+    .muscle-home ~ .training-hero { margin:8px 0; padding:14px 16px; }
+    .muscle-home ~ .training-hero h3 { font-size:23px; margin-bottom:12px; }
+    .muscle-home ~ .training-hero .eyebrow { margin-bottom:4px; }
+    .muscle-home ~ .training-hero button { min-height:48px; }
+    .split-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:14px 0; }
+    .split-tabs [aria-pressed=true],.muscle-chips [aria-pressed=true] { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
+    .muscle-chips { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 24px; }
+    .muscle-chips button { font-size:14px; min-height:44px; padding:8px 12px; border-radius:24px; }
+    .focus-exercise { display:flex; gap:12px; align-items:center; min-height:76px; border-bottom:1px solid var(--line); padding:12px 0; margin:0; font-weight:400; }
+    .focus-exercise input[type=checkbox] { width:24px; min-height:24px; height:24px; flex:none; accent-color:var(--accent); }
+    .focus-exercise span { display:grid; gap:3px; }
+    .focus-exercise small { font-size:12px; font-weight:400; }
+    .focus-plan-preview { padding:20px 0; }
+    .focus-plan-preview p { margin:4px 0; }
+    .focus-plan-preview > button { width:100%; margin-top:16px; }
   </style>
 </head>
 <body>
@@ -369,7 +400,9 @@
         sessions.push({planSlots,xpRules:sessionRules,id:session.id,date:session.date,type:session.type,status:session.status,startTime:session.startTime,endTime:session.endTime,restEnd:session.restEnd ?? null,restExercise:session.restExercise ?? '',restKind:session.restKind ?? 'set',currentExerciseId:session.currentExerciseId ?? '',note:session.note,exercises});
       }
       if (active>1) throw Error('Mehrere aktive Sitzungen.');
-      return {schemaVersion:SCHEMA,settings:{xpRules,restSeconds:s.restSeconds,betweenExerciseRestSeconds:between,exerciseRestSeconds:{...s.exerciseRestSeconds},proteinTarget:s.proteinTarget,scoopGrams:s.scoopGrams,proteinPerScoop:s.proteinPerScoop,creatineDose:s.creatineDose,templates,steps},nutrition,sessions};
+      const muscleFocus={};
+      for(const type of ['upper','lower']) muscleFocus[type]=Array.isArray(s.muscleFocus?.[type])?s.muscleFocus[type].filter(k=>typeof k==='string' && ['chest','back','shoulders','biceps','triceps','abs','lowerBack','glutes','quads','hamstrings','calves','adductors','abductors'].includes(k)).slice(0,13):[];
+      return {schemaVersion:SCHEMA,settings:{muscleFocus,xpRules,restSeconds:s.restSeconds,betweenExerciseRestSeconds:between,exerciseRestSeconds:{...s.exerciseRestSeconds},proteinTarget:s.proteinTarget,scoopGrams:s.scoopGrams,proteinPerScoop:s.proteinPerScoop,creatineDose:s.creatineDose,templates,steps},nutrition,sessions};
     }
     function warning(message) { storageProblem=message; const e=document.getElementById('storage-message'); e.textContent=message; e.hidden=false; }
     function read() {
@@ -430,8 +463,155 @@
         add(name);
       })); parent.append(box);
     }
+    const MUSCLES={chest:'Brust',back:'Rücken',shoulders:'Schultern',biceps:'Bizeps',triceps:'Trizeps',abs:'Bauch',lowerBack:'Unterer Rücken',glutes:'Gesäß',quads:'Oberschenkel vorn',hamstrings:'Oberschenkel hinten',calves:'Waden',adductors:'Adduktoren',abductors:'Abduktoren'};
+    // Schematic attribution for display: one completed set = 1 primary / 0.5 secondary.
+    // Not a measure of activation, recovery, strength, or muscle growth.
+    const MUSCLE_CATALOG={
+      'Chest Press':{type:'upper',primary:['chest'],secondary:['shoulders','triceps'],equipment:'Brustpresse'},
+      'Low Row':{type:'upper',primary:['back'],secondary:['biceps','shoulders'],equipment:'Rudergerät'},
+      'Vertical Traction':{type:'upper',primary:['back'],secondary:['biceps'],equipment:'Latzug'},
+      'Shoulder Press':{type:'upper',primary:['shoulders'],secondary:['triceps'],equipment:'Schulterpresse'},
+      'Reverse Fly':{type:'upper',primary:['shoulders','back'],secondary:[],equipment:'Reverse-Fly-Maschine'},
+      'Pectoral einseitig':{type:'upper',primary:['chest'],secondary:[],equipment:'Brustmaschine / Kabelzug'},
+      'Back Extensions':{type:'upper',primary:['lowerBack'],secondary:['glutes','hamstrings'],equipment:'Rückenstrecker'},
+      'Hammer Curls':{type:'upper',primary:['biceps'],secondary:[],equipment:'Kurzhanteln'},
+      'Trizeps Pushdown':{type:'upper',primary:['triceps'],secondary:[],equipment:'Kabelzug'},
+      'Leg Press':{type:'lower',primary:['quads'],secondary:['glutes'],equipment:'Beinpresse'},
+      'Leg Curl':{type:'lower',primary:['hamstrings'],secondary:[],equipment:'Beinbeuger'},
+      'Leg Extension':{type:'lower',primary:['quads'],secondary:[],equipment:'Beinstrecker'},
+      'Calf Raises':{type:'lower',primary:['calves'],secondary:[],equipment:'Wadenmaschine'},
+      'Adduktoren':{type:'lower',primary:['adductors'],secondary:[],equipment:'Adduktorenmaschine'},
+      'Abduktoren':{type:'lower',primary:['abductors'],secondary:['glutes'],equipment:'Abduktorenmaschine'},
+      'Reverse Crunches':{type:'lower',primary:['abs'],secondary:[],equipment:'Matte'},
+      'Schrägbank-Sit-ups':{type:'lower',primary:['abs'],secondary:[],equipment:'Schrägbank'},
+      'Decline Oblique Sit-ups':{type:'lower',primary:['abs'],secondary:[],equipment:'Schrägbank'},
+      'Incline Chest Press':{type:'upper',primary:['chest'],secondary:['shoulders','triceps'],equipment:'Schrägbank / Brustpresse'},
+      'Lateral Raises':{type:'upper',primary:['shoulders'],secondary:[],equipment:'Kurzhanteln'},
+      'Hip Thrust':{type:'lower',primary:['glutes'],secondary:['hamstrings'],equipment:'Bank / Hip-Thrust-Maschine'}
+    };
+    let focusType=null, focusDrafts={}, muscleDetail=null, muscleSnapshot='';
+    function muscleActivity(now=Date.now()) {
+      const scores=Object.fromEntries(Object.keys(MUSCLES).map(key=>[key,0]));
+      let counted=0,unmapped=0;
+      for(const session of data.sessions) for(const e of session.exercises) for(const set of e.sets) {
+        if(set.status!=='completed' || !Number.isSafeInteger(set.timestamp) || set.timestamp>now || set.timestamp<now-7*86400000)continue;
+        const meta=MUSCLE_CATALOG[e.name]; if(!meta){unmapped++;continue;}
+        counted++;
+        meta.primary.forEach(key=>{scores[key]+=1;});
+        meta.secondary.filter(key=>!meta.primary.includes(key)).forEach(key=>{scores[key]+=.5;});
+      }
+      return {scores,counted,unmapped};
+    }
+    function muscleColor(value) { return value===0?'#e6e2da':value<=3?'#c5d6f1':value<=6?'#82a5d8':value<=9?'#3f70bc':'#1040a0'; }
+    function svgNode(tag,attrs={}) {
+      const el=document.createElementNS?document.createElementNS('http://www.w3.org/2000/svg',tag):node(tag);
+      Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));return el;
+    }
+    function muscleFigure(back,scores) {
+      const svg=svgNode('svg',{viewBox:'0 0 180 410',role:'group','aria-label':back?'Muskelkarte Rückseite':'Muskelkarte Vorderseite'});
+      svg.classList?.add?.('body-figure');
+      // Original schematic SVG, not a diagnostic anatomical illustration.
+      svg.append(svgNode('path',{d:'M90 10 C65 10 65 48 80 53 L78 63 C63 65 51 69 45 84 L24 151 17 198 28 202 45 160 59 119 61 173 55 222 61 298 63 374 53 394 80 394 86 303 90 254 94 303 100 394 127 394 117 374 119 298 125 222 119 173 121 119 135 160 152 202 163 198 156 151 135 84 C129 69 117 65 102 63 L100 53 C115 48 115 10 90 10Z',fill:'#f0ede7',stroke:'#c9c4ba','stroke-width':1.3}));
+      const shapes=back?[
+        ['back','M69 67 L88 79 88 155 65 173 59 103Z M111 67 L92 79 92 155 115 173 121 103Z'],
+        ['shoulders','M65 67 Q45 70 44 98 L57 107 69 83Z M115 67 Q135 70 136 98 L123 107 111 83Z'],
+        ['triceps','M44 100 L56 110 44 153 34 148Z M136 100 L124 110 136 153 146 148Z'],
+        ['lowerBack','M68 159 L88 148 90 196 65 194Z M112 159 L92 148 90 196 115 194Z'],
+        ['glutes','M64 198 Q88 190 89 218 L85 242 60 237 58 221Z M116 198 Q92 190 91 218 L95 242 120 237 122 221Z'],
+        ['hamstrings','M60 244 L84 249 80 296 68 303Z M120 244 L96 249 100 296 112 303Z'],
+        ['calves','M67 307 Q83 305 80 342 L76 367 66 365Z M113 307 Q97 305 100 342 L104 367 114 365Z']
+      ]:[
+        ['chest','M64 91 Q76 76 88 84 L88 116 Q73 123 61 112Z M116 91 Q104 76 92 84 L92 116 Q107 123 119 112Z'],
+        ['shoulders','M63 68 Q44 70 43 96 L56 103 67 85Z M117 68 Q136 70 137 96 L124 103 113 85Z'],
+        ['biceps','M44 103 L56 110 45 145 34 143Z M136 103 L124 110 135 145 146 143Z'],
+        ['abs','M76 122 L88 124 88 191 75 184 70 153Z M104 122 L92 124 92 191 105 184 110 153Z'],
+        ['abductors','M60 194 L70 191 68 223 58 233 56 218Z M120 194 L110 191 112 223 122 233 124 218Z'],
+        ['quads','M60 237 L75 229 81 261 78 297 65 298Z M120 237 L105 229 99 261 102 297 115 298Z'],
+        ['adductors','M76 203 L88 205 86 256 81 278 76 246Z M104 203 L92 205 94 256 99 278 104 246Z'],
+        ['calves','M65 311 L75 313 77 361 68 369Z M115 311 L105 313 103 361 112 369Z']
+      ];
+      for(const [key,path] of shapes) {
+        const group=svgNode('g',{role:'button',tabindex:0,'aria-label':MUSCLES[key]+': '+amount(scores[key])+' gewichtete Sätze','data-muscle':key});
+        const title=svgNode('title');title.textContent=MUSCLES[key];
+        group.append(title,svgNode('path',{d:path,fill:muscleColor(scores[key]),stroke:'#fffefa','stroke-width':1.5}));
+        const choose=()=>{muscleDetail=key;render();document.getElementById('muscle-detail')?.focus();};
+        group.addEventListener('click',choose);group.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();choose();}});svg.append(group);
+      }
+      return svg;
+    }
+    function muscleHome() {
+      const activity=muscleActivity(), section=node('section',undefined,'muscle-home');
+      muscleSnapshot=JSON.stringify(activity);
+      const heading=node('div',undefined,'muscle-heading');heading.append(node('h3','Dein Körper'),node('span','Letzte 7 Tage','small muted'));section.append(heading);
+      const figures=node('div',undefined,'body-pair');
+      for(const back of [false,true]){const figure=node('figure');figure.append(muscleFigure(back,activity.scores),node('figcaption',back?'Rückseite':'Vorderseite'));figures.append(figure);}section.append(figures);
+      const legend=node('div',undefined,'muscle-legend');
+      for(const [value,label] of [[0,'0'],[1,'>0–3'],[4,'>3–6'],[7,'>6–9'],[10,'>9']]){const item=node('span',label);item.style.backgroundColor=muscleColor(value);if(value>=7)item.style.color='#fff';legend.append(item);}
+      section.append(legend,node('p',activity.counted?'Gewichtete Sätze · Hauptmuskel 1, mitbeteiligt ½':'Noch keine zugeordneten Sätze in den letzten 7 Tagen.','small muted'));
+      if(activity.unmapped)section.append(node('p',activity.unmapped+' Sätze ohne Muskelzuordnung.','small muted'));
+      if(muscleDetail){const detail=node('p',MUSCLES[muscleDetail]+': '+amount(activity.scores[muscleDetail])+' gewichtete Sätze','muscle-detail');detail.id='muscle-detail';detail.tabIndex=-1;section.append(detail);}
+      section.append(button('Fokus & Übungen',()=>go('focus')));
+      const details=node('details');details.append(node('summary','Muskelgruppen & Berechnung'));
+      for(const [key,label] of Object.entries(MUSCLES)) details.append(button(label+': '+amount(activity.scores[key]),()=>{muscleDetail=key;render();document.getElementById('muscle-detail')?.focus();}));
+      details.append(node('p','Schematische Zuordnung abgeschlossener Sätze, auch im laufenden Training. Farbe zeigt protokollierten Umfang, nicht Muskelaufbau oder Erholung. Unbekannte Übungen und Sätze ohne Zeitpunkt zählen nicht.','small muted'));
+      section.append(details);return section;
+    }
+    function focusDraftFor(type) {
+      const template=data.settings.templates[type], signature=JSON.stringify(template.exercises);
+      if(!focusDrafts[type] || focusDrafts[type].signature!==signature) focusDrafts[type]={signature,groups:new Set(data.settings.muscleFocus?.[type] || []),selected:new Set(template.exercises)};
+      return focusDrafts[type];
+    }
+    function focusCandidates(type,groups) {
+      const existing=data.settings.templates[type].exercises;
+      const names=[...new Set([...existing,...Object.keys(MUSCLE_CATALOG).filter(name=>MUSCLE_CATALOG[name].type===type)])];
+      const score=name=>{const e=MUSCLE_CATALOG[name];return e?e.primary.filter(k=>groups.has(k)).length*2+e.secondary.filter(k=>groups.has(k)).length:0;};
+      return names.sort((a,b)=>score(b)-score(a) || (existing.includes(b)?1:0)-(existing.includes(a)?1:0));
+    }
+    function focusCoverage(type,selected) {
+      const covered=names=>new Set([...names].flatMap(name=>{const m=MUSCLE_CATALOG[name];return m?[...m.primary]:[];}));
+      const before=covered(data.settings.templates[type].exercises),after=covered(selected);
+      return [...before].filter(key=>!after.has(key));
+    }
+    function showFocus() {
+      focusType ||= suggestedType();const type=focusType,state=focusDraftFor(type);
+      main.append(button('‹ Körper',()=>go('home')));title('Dein Fokus');
+      main.append(node('p','EVO Wien Bel & Main','small muted'));
+      const tabs=node('div',undefined,'split-tabs');
+      for(const t of ['upper','lower']){const control=button(data.settings.templates[t].name,()=>{focusType=t;render();});control.setAttribute('aria-pressed',String(t===type));tabs.append(control);}main.append(tabs);
+      main.append(node('p','Der Zweier-Split bleibt bestehen. Fokus priorisiert passende Übungen; andere Muskelgruppen bleiben berücksichtigt.','small muted'));
+      const groups=[...new Set(Object.values(MUSCLE_CATALOG).filter(e=>e.type===type).flatMap(e=>e.primary))];
+      const chips=node('div',undefined,'muscle-chips');
+      for(const key of groups){const chip=button(MUSCLES[key],()=>{if(state.groups.has(key))state.groups.delete(key);else state.groups.add(key);render();});chip.setAttribute('aria-pressed',String(state.groups.has(key)));chips.append(chip);}main.append(chips);
+      const list=node('section',undefined,'focus-exercises');list.append(node('h3','Passende Übungen'));
+      for(const name of focusCandidates(type,state.groups)) {
+        const meta=MUSCLE_CATALOG[name],original=data.settings.templates[type].exercises.includes(name);
+        const matched=!state.groups.size || meta && [...meta.primary,...meta.secondary].some(k=>state.groups.has(k));
+        if(!matched && !state.selected.has(name))continue;
+        const item=node('label',undefined,'focus-exercise');const check=node('input');check.type='checkbox';check.checked=state.selected.has(name);check.setAttribute('aria-label',name+' im Plan');
+        check.addEventListener('change',()=>{if(check.checked)state.selected.add(name);else state.selected.delete(name);render();});
+        const text=node('span');text.append(node('strong',name),node('small',meta?meta.primary.map(k=>MUSCLES[k]).join(', '):'Muskelzuordnung offen'),node('small',original?'Aus deinem Plan':(meta?.equipment || 'Gerät')+' · vor Ort prüfen'));item.append(check,text);list.append(item);
+      }main.append(list);
+      const ordered=focusCandidates(type,state.groups).filter(name=>state.selected.has(name));
+      const preview=node('section',undefined,'focus-plan-preview');preview.append(node('h3','Vorschau · '+data.settings.templates[type].name));
+      ordered.forEach((name,i)=>preview.append(node('p',(i+1)+'. '+name,'small')));
+      const missing=focusCoverage(type,state.selected);
+      if(missing.length)preview.append(node('p','Bisher direkt trainierte Gruppen fehlen: '+missing.map(k=>MUSCLES[k]).join(', ')+'. Ergänze passende Übungen.','notice'));
+      const apply=button('Für nächste Trainings übernehmen',()=>{
+        if(JSON.stringify(data.settings.templates[type].exercises)!==state.signature) { delete focusDrafts[type];render();say('Der Plan wurde inzwischen geändert. Bitte die neue Vorschau prüfen.');return; }
+        if(!ordered.length || focusCoverage(type,state.selected).length)return;
+        const before=data.settings.templates[type].exercises,oldFocus=data.settings.muscleFocus;
+        data.settings.templates[type].exercises=ordered;
+        data.settings.muscleFocus={...data.settings.muscleFocus,[type]:[...state.groups]};
+        if(!save()){data.settings.templates[type].exercises=before;data.settings.muscleFocus=oldFocus;return;}
+        focusDrafts={};go('home');say('Fokus gespeichert. Laufendes Training und Verlauf bleiben unverändert.');
+      },true);apply.disabled=!ordered.length || !!missing.length;preview.append(apply);main.append(preview);
+      const info=node('details');info.append(node('summary','Geräte & Zuordnung'),node('p','Die Standortseite nennt keine vollständige Geräteliste. Dein vorhandener Plan dient als Ausgangspunkt, nicht als verifizierte Inventarliste. Zusätzliche Übungen bitte vor Ort prüfen. Neue Übungen starten ohne erfundene kg-Vorgabe.','small muted'));
+      const source=node('a','EVO Bel & Main · Standort');source.href='https://evofitness.at/de/clubs/wien/bel-main/';source.target='_blank';source.rel='noopener';info.append(source);main.append(info);
+    }
+
     function showHome() {
       title('Heute trainieren');
+      main.append(muscleHome());
       const todayNutrition=data.nutrition[today()];
       const totalProtein=todayNutrition?.protein.reduce((sum,x)=>sum+x.g,0) || 0;
       const nutritionCard=node('section',undefined,'card'); nutritionCard.append(node('h3','Heute'),node('p','Protein: '+String(Math.round(totalProtein*10)/10).replace('.',',')+' von '+String(data.settings.proteinTarget).replace('.',',')+' g'));
@@ -898,16 +1078,18 @@
     let swipeStart=null;
     main.addEventListener('pointerdown',event=>{
       swipeStart=null;
-      if(view!=='workout' || event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0))return;
-      if(event.target.closest?.('input,textarea,select,button,a,summary,.value-wheel,dialog'))return;
+      if(!['workout','home','focus'].includes(view) || event.isPrimary===false || (event.pointerType==='mouse' && event.button!==0))return;
+      if(event.target.closest?.('input,textarea,select,button,a,summary,.value-wheel,dialog,g[role=button]'))return;
       swipeStart={x:event.clientX,y:event.clientY,id:event.pointerId,time:Date.now()};
     });
     main.addEventListener('pointercancel',()=>{swipeStart=null;});
     main.addEventListener('pointerup',event=>{
       const start=swipeStart; swipeStart=null;
-      if(!start || start.id!==event.pointerId || view!=='workout' || Date.now()-start.time>1200)return;
+      if(!start || start.id!==event.pointerId || !['workout','home','focus'].includes(view) || Date.now()-start.time>1200)return;
       const dx=event.clientX-start.x,dy=event.clientY-start.y;
       if(Math.abs(dx)<80 || Math.abs(dx)<Math.abs(dy)*1.8)return;
+      if(view==='home') { if(dx>0)go('focus'); return; }
+      if(view==='focus') { if(dx<0)go('home'); return; }
       if(dx<0)go('home'); else requestNextExercise();
     });
     function nextExercise(s,e) {
@@ -1192,7 +1374,7 @@
       panel.open=previewNavOpen;
       panel.addEventListener('toggle',()=>{ previewNavOpen=panel.open; });
       panel.append(node('summary','Vorschau · Navigation'));
-      const screens=[['home','Start'],['plan','Plan'],['workout','Training'],['history','Verlauf'],['settings','Einstellungen'],['finish','Abschluss']];
+      const screens=[['home','Start'],['focus','Fokus'],['plan','Plan'],['workout','Training'],['history','Verlauf'],['settings','Einstellungen'],['finish','Abschluss']];
       const jump=target=>{
         if(target==='workout' && !active()) { say('Bitte zuerst auf Start ein Training beginnen.'); return; }
         if(target==='finish') {
@@ -1238,10 +1420,11 @@
       if (['history','settings'].includes(view)) {
         const back=button('‹ Training',()=>go('home')); back.className='back-home'; main.append(back);
       }
-      ({home:showHome,plan:showPlan,workout:showWorkout,finish:showFinish,history:showHistory,settings:showSettings}[view])();
+      ({home:showHome,focus:showFocus,plan:showPlan,workout:showWorkout,finish:showFinish,history:showHistory,settings:showSettings}[view])();
       previewNavigation();
     }
     function tick() {
+      if(view==='home' && muscleSnapshot && muscleSnapshot!==JSON.stringify(muscleActivity())) render();
       const s=active();
       const elapsed=document.getElementById('workout-elapsed');
       if (elapsed && s) { const minutes=Math.floor((Date.now()-s.startTime)/60000); elapsed.textContent=minutes+' Min. Training'; }
